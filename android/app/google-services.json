@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1002616448817",
+    "project_id": "astrology-da455",
+    "storage_bucket": "astrology-da455.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1002616448817:android:aca74f0b8c6254d8b0b210",
+        "android_client_info": {
+          "package_name": "com.example.astrology_partner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOWRLhmTTC0o5urFsaW1FCjLXRgrGQ7p8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1002616448817:android:0c771fcdd193f622b0b210",
+        "android_client_info": {
+          "package_name": "com.example.astrology_user"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOWRLhmTTC0o5urFsaW1FCjLXRgrGQ7p8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
