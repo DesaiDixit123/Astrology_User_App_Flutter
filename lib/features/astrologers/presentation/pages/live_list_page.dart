@@ -3,6 +3,8 @@ import 'package:astrology_user/core/constants/api_constants.dart';
 import 'package:astrology_user/core/theme/app_colors.dart';
 import 'package:astrology_user/core/theme/app_text_styles.dart';
 import 'package:astrology_user/features/live/presentation/controllers/live_controller.dart';
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
+import 'package:astrology_user/core/utils/astrologer_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -12,13 +14,12 @@ class LiveListPage extends GetView<LiveController> {
 
   @override
   Widget build(BuildContext context) {
+    controller.loadLiveStreams();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Astrologers'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
+        title: Text('live_now'.tr),
+        centerTitle: true,
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -27,14 +28,7 @@ class LiveListPage extends GetView<LiveController> {
 
         if (controller.liveStreams.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.videocam_off, size: 64.sp, color: Colors.grey),
-                SizedBox(height: 16.h),
-                Text('No live sessions currently', style: AppTextStyles.bodyLarge),
-              ],
-            ),
+            child: Text('no_astrologers_found'.tr, style: AppTextStyles.bodyMedium),
           );
         }
 
@@ -42,22 +36,18 @@ class LiveListPage extends GetView<LiveController> {
           padding: EdgeInsets.all(16.w),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
+            childAspectRatio: 0.75,
             crossAxisSpacing: 16.w,
             mainAxisSpacing: 16.h,
-            childAspectRatio: 0.8,
           ),
           itemCount: controller.liveStreams.length,
           itemBuilder: (context, index) {
             final session = (controller.liveStreams[index] as Map).cast<String, dynamic>();
             final partner = (session['astrologer_id'] is Map) 
               ? (session['astrologer_id'] as Map).cast<String, dynamic>()
-              : {};
+              : (session['partner'] is Map ? (session['partner'] as Map).cast<String, dynamic>() : session);
             
-            final name = partner['name']?.toString().trim().isNotEmpty == true
-                ? partner['name'].toString()
-                : (partner['personal_details'] is Map
-                    ? partner['personal_details']['name']?.toString() ?? 'Astrologer'
-                    : 'Astrologer');
+            final name = AstrologerUtils.getLocalizedAstrologerName(session);
 
             final profilePic = partner['profile_image']?.toString().trim().isNotEmpty == true
                 ? partner['profile_image'].toString()
@@ -152,7 +142,10 @@ class LiveListPage extends GetView<LiveController> {
                       children: [
                         Text(
                           name,
-                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -185,7 +178,7 @@ class LiveListPage extends GetView<LiveController> {
                             ),
                             child: controller.isJoining.value 
                               ? SizedBox(height: 14.h, width: 14.h, child: const CircularProgressIndicator(strokeWidth: 2))
-                              : Text('Join Now', style: AppTextStyles.caption.copyWith(color: AppColors.primary)),
+                              : Text('consult'.tr, style: AppTextStyles.caption.copyWith(color: AppColors.primary)),
                           )),
                         ),
                       ],

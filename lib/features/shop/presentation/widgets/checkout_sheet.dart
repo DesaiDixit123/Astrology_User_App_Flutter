@@ -79,22 +79,30 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     final order = data['order'];
     _lastCreatedOrderId = order['_id'];
 
-    final options = {
+    final String rzpOrderId = razorpayOrder?['id']?.toString() ?? '';
+    final Map<String, dynamic> options = {
       'key': AppConstants.razorpayKeyId,
       'amount': razorpayOrder['amount'],
       'name': 'Vedikvani Wellness Shop',
-      'order_id': razorpayOrder['id'],
       'description': 'Order Payment',
       'prefill': {
-        'contact': mobileController.text,
-        'name': nameController.text,
+        'contact': mobileController.text.isNotEmpty ? mobileController.text : '9904755099',
+        'name': nameController.text.isNotEmpty ? nameController.text : 'Customer',
+        'email': 'admin@thekhushiempire.com',
       },
+      'theme': {'color': '#E65100'},
+      'retry': {'enabled': true, 'max_count': 1},
+      'send_sms_hash': true,
     };
+
+    if (rzpOrderId.isNotEmpty && !rzpOrderId.startsWith('order_sim_')) {
+      options['order_id'] = rzpOrderId;
+    }
 
     try {
       _razorpay.open(options);
     } catch (e) {
-      Get.snackbar('Error', 'Could not open payment gateway');
+      Get.snackbar('Error', 'Could not open payment gateway: $e');
     }
   }
 

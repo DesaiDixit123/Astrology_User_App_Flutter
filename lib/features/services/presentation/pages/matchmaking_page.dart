@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/services/pdf_export_service.dart';
 import '../controllers/matchmaking_controller.dart';
 import '../widgets/north_indian_chart.dart';
 
@@ -25,6 +26,7 @@ class MatchmakingPage extends GetView<MatchmakingController> {
       ),
       body: SingleChildScrollView(
         controller: controller.mainScrollController,
+        padding: EdgeInsets.only(bottom: 24.h + MediaQuery.of(context).padding.bottom),
         child: Column(
           children: [
              _buildHeaderMenu(),
@@ -310,17 +312,56 @@ class MatchmakingPage extends GetView<MatchmakingController> {
             return await this.controller.searchPlaces(textEditingValue.text);
           },
           displayStringForOption: (option) => option['description'] as String,
-          onSelected: (option) async {
-             controller.text = option['description'];
-             final details = await this.controller.getPlaceDetails(option['place_id']);
-             if (details != null) {
-               onPlaceSelected(details['lat']!, details['lon']!);
-             }
+          onSelected: (option) {
+            controller.text = option['description'];
+            if (option['lat'] != null && option['lon'] != null) {
+              onPlaceSelected(option['lat'].toString(), option['lon'].toString());
+            }
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 6.0,
+                borderRadius: BorderRadius.circular(12.r),
+                color: Colors.white,
+                child: Container(
+                  width: MediaQuery.of(context).size.width - 64.w,
+                  constraints: BoxConstraints(maxHeight: 220.h),
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (c, i) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final option = options.elementAt(index);
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on, color: Colors.orange, size: 18),
+                        title: Text(
+                          option['description'] ?? '',
+                          style: AppTextStyles.bodySmall.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
+                        ),
+                        onTap: () {
+                          onSelected(option);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
           },
           fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+            if (controller.text.isNotEmpty && textEditingController.text.isEmpty) {
+              textEditingController.text = controller.text;
+            }
             return TextField(
               controller: textEditingController,
               focusNode: focusNode,
+              onChanged: (val) {
+                controller.text = val;
+              },
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
@@ -346,6 +387,27 @@ class MatchmakingPage extends GetView<MatchmakingController> {
       
       return Column(
         children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: 16.h),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => PdfExportService().exportMatchmakingPdf(
+                      Map<String, dynamic>.from(controller.matchmakingResult),
+                    ),
+                icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+                label: Text(
+                  'Download Matching PDF Report',
+                  style: AppTextStyles.button.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
+                ),
+              ),
+            ),
+          ),
           Container(
             color: Colors.white,
             child: SingleChildScrollView(
@@ -401,8 +463,12 @@ class MatchmakingPage extends GetView<MatchmakingController> {
 
   Widget _buildBasicDetailsTab() {
     final res = controller.matchmakingResult;
-    final boyDetails = Map<String, dynamic>.from(res['boy'] ?? res['boy_details'] ?? {});
-    final girlDetails = Map<String, dynamic>.from(res['girl'] ?? res['girl_details'] ?? {});
+    final payload = res['payload'] as Map<String, dynamic>? ?? {};
+    final ashtakoot = (res['ashtakoot'] as Map?)?.cast<String, dynamic>() ?? {};
+    final tara = (ashtakoot['tara'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    final boyDetails = Map<String, dynamic>.from(res['boy'] ?? res['boy_details'] ?? res['boy_astro_details'] ?? {});
+    final girlDetails = Map<String, dynamic>.from(res['girl'] ?? res['girl_details'] ?? res['girl_astro_details'] ?? {});
     
     final recommendation = res['recommendation']?.toString() ?? 'Match analysis generated successfully';
     
@@ -411,9 +477,33 @@ class MatchmakingPage extends GetView<MatchmakingController> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildDetailsCard('MALE BIRTH DETAILS', Colors.green.shade50, boyDetails)),
+            Expanded(
+              child: _buildDetailsCard(
+                'MALE BIRTH DETAILS',
+                Colors.green.shade50,
+                boyDetails,
+                fallbackName: payload['boy_name'] ?? controller.mNameController.text,
+                fallbackDob: payload['boy_dob'] ?? controller.mDobController.text,
+                fallbackTob: payload['boy_tob'] ?? controller.mTobController.text,
+                fallbackPlace: payload['boy_place'] ?? controller.mPlaceController.text,
+                fallbackNakshatra: tara['boy_star']?.toString() ?? tara['boy_nakshatra']?.toString() ?? tara['boy_tara']?.toString(),
+                fallbackNakshatraPada: tara['boy_pada']?.toString(),
+              ),
+            ),
             SizedBox(width: 16.w),
-            Expanded(child: _buildDetailsCard('FEMALE BIRTH DETAILS', Colors.red.shade50, girlDetails)),
+            Expanded(
+              child: _buildDetailsCard(
+                'FEMALE BIRTH DETAILS',
+                Colors.red.shade50,
+                girlDetails,
+                fallbackName: payload['girl_name'] ?? controller.fNameController.text,
+                fallbackDob: payload['girl_dob'] ?? controller.fDobController.text,
+                fallbackTob: payload['girl_tob'] ?? controller.fTobController.text,
+                fallbackPlace: payload['girl_place'] ?? controller.fPlaceController.text,
+                fallbackNakshatra: tara['girl_star']?.toString() ?? tara['girl_nakshatra']?.toString() ?? tara['girl_tara']?.toString(),
+                fallbackNakshatraPada: tara['girl_pada']?.toString(),
+              ),
+            ),
           ],
         ),
         SizedBox(height: 24.h),
@@ -456,7 +546,47 @@ class MatchmakingPage extends GetView<MatchmakingController> {
     );
   }
 
-  Widget _buildDetailsCard(String title, Color bgColor, Map<String, dynamic> data) {
+  Widget _buildDetailsCard(
+    String title, 
+    Color bgColor, 
+    Map<String, dynamic> data, {
+    String? fallbackName,
+    String? fallbackDob,
+    String? fallbackTob,
+    String? fallbackPlace,
+    String? fallbackNakshatra,
+    String? fallbackNakshatraPada,
+  }) {
+    final name = (data['name']?.toString().isNotEmpty == true)
+        ? data['name'].toString()
+        : (fallbackName?.isNotEmpty == true ? fallbackName! : 'N/A');
+
+    String dateTimeStr = 'N/A';
+    if (data['dob_tob'] != null && data['dob_tob'].toString().trim().isNotEmpty) {
+      dateTimeStr = data['dob_tob'].toString();
+    } else {
+      final dob = data['dob'] ?? data['date'] ?? fallbackDob ?? '';
+      final tob = data['tob'] ?? data['time'] ?? fallbackTob ?? '';
+      if (dob.toString().isNotEmpty || tob.toString().isNotEmpty) {
+        dateTimeStr = '$dob $tob'.trim();
+      }
+    }
+    if (dateTimeStr == 'null null' || dateTimeStr.trim().isEmpty) {
+      dateTimeStr = 'N/A';
+    }
+
+    final place = (fallbackPlace?.isNotEmpty == true)
+        ? fallbackPlace!
+        : (data['birth_place'] ?? data['place'] ?? 'N/A');
+    final rasi = data['janam_rashi'] ?? data['rasi'] ?? data['zodiac'] ?? data['rashi'] ?? 'N/A';
+    final rasiLord = data['rashi_lord'] ?? data['rasi_lord'] ?? data['zodiac_lord'] ?? 'N/A';
+    
+    final nakshatraStr = data['nakshatra'] ?? data['star'] ?? fallbackNakshatra;
+    final nakshatra = (nakshatraStr != null && nakshatraStr.toString().trim().isNotEmpty) ? nakshatraStr.toString() : 'N/A';
+    
+    final padaStr = data['nakshatra_pada'] ?? data['pada'] ?? fallbackNakshatraPada;
+    final nakshatraPada = (padaStr != null && padaStr.toString().trim().isNotEmpty) ? padaStr.toString() : 'N/A';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -470,19 +600,19 @@ class MatchmakingPage extends GetView<MatchmakingController> {
             decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.vertical(top: Radius.circular(16.r))),
             child: Center(child: Text(title, style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.bold, color: Colors.green))),
           ),
-          _buildDetailRow('NAME', data['name'] ?? 'N/A'),
+          _buildDetailRow('NAME', name),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('DATE & TIME', '${data['dob']} ${data['tob']}'),
+          _buildDetailRow('DATE & TIME', dateTimeStr),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('PLACE OF BIRTH', data['place'] ?? 'N/A'),
+          _buildDetailRow('PLACE OF BIRTH', place),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('RASI', data['rasi'] ?? 'N/A'),
+          _buildDetailRow('RASI', rasi),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('RASI LORD', data['rasi_lord'] ?? 'N/A'),
+          _buildDetailRow('RASI LORD', rasiLord),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('NAKSHATRA', data['nakshatra'] ?? 'N/A'),
+          _buildDetailRow('NAKSHATRA', nakshatra),
           Divider(height: 1, color: Colors.grey.shade200),
-          _buildDetailRow('NAKSHATRA PADA', data['nakshatra_pada'] ?? 'N/A'),
+          _buildDetailRow('NAKSHATRA PADA', nakshatraPada),
         ],
       ),
     );
@@ -502,62 +632,146 @@ class MatchmakingPage extends GetView<MatchmakingController> {
   }
 
   Widget _buildDoshaTab() {
-     final res = controller.matchmakingResult;
-     final ashtakoot = res['ashtakoot'] ?? res['response']?['ashtakoot'] ?? {};
-     final score = ashtakoot['received'] ?? res['score'] ?? '0';
-     final total = ashtakoot['total'] ?? '36';
-     final doshaElements = res['dosha'] ?? {};
+    final res = controller.matchmakingResult;
+    final ashtakoot = (res['ashtakoot'] as Map?)?.cast<String, dynamic>() ?? {};
+    final manglik = (res['manglik'] as Map?)?.cast<String, dynamic>() ?? {};
 
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         Text("Couple's basic details", style: AppTextStyles.h4),
-         SizedBox(height: 16.h),
-         Row(
-           children: [
-             Expanded(child: _buildDoshaCard('Ashtakoot', '$score/$total')),
-             SizedBox(width: 8.w),
-             Expanded(child: _buildDoshaCard('Rajjoo Dosha', doshaElements['rajjoo'] ?? 'No')),
-             SizedBox(width: 8.w),
-             Expanded(child: _buildDoshaCard('Vedha Dosha', doshaElements['vedha'] ?? 'No')),
-             SizedBox(width: 8.w),
-             Expanded(child: _buildDoshaCard('Manglik Match', doshaElements['manglik'] ?? 'Yes')),
-           ],
-         ),
-         SizedBox(height: 24.h),
-         Text("Match Ashtakoot Points", style: AppTextStyles.h4),
-         SizedBox(height: 12.h),
-         // Real app would render a Data Table here based on `ashtakoot['points']` list
-         Container(
-           padding: EdgeInsets.all(16.w),
-           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.r), border: Border.all(color: Colors.brown.shade100)),
-           child: SingleChildScrollView(
-             scrollDirection: Axis.horizontal,
-             child: DataTable(
-               headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
-               columns: const [
-                 DataColumn(label: Text('Attribute')),
-                 DataColumn(label: Text('Male')),
-                 DataColumn(label: Text('Female')),
-                 DataColumn(label: Text('Out of')),
-                 DataColumn(label: Text('Received')),
-                 DataColumn(label: Text('Area Of Life')),
-               ],
-               rows: [
-                 // Placeholder rows since exact structure is unknown
-                 DataRow(cells: [DataCell(Text('Varna')), DataCell(Text('Kshatriya')), DataCell(Text('Brahmin')), DataCell(Text('1')), DataCell(Text('0', style: TextStyle(color: Colors.brown))), DataCell(Text('Work'))]),
-                 DataRow(cells: [DataCell(Text('Vashya')), DataCell(Text('Chatushpada')), DataCell(Text('Keeta')), DataCell(Text('2')), DataCell(Text('1', style: TextStyle(color: Colors.brown))), DataCell(Text('Innate Giving'))]),
-               ],
-             ),
-           ),
-         ),
-       ],
-     );
+    dynamic getVal(Map? map, String key) => map? [key] ?? map?['score'] ?? map?['received_points'] ?? map?['received'];
+
+    final gunas = [
+      {
+        'attribute': 'Varna',
+        'male': ashtakoot['varna']?['boy_varna']?.toString() ?? '-',
+        'female': ashtakoot['varna']?['girl_varna']?.toString() ?? '-',
+        'outOf': '1',
+        'received': getVal(ashtakoot['varna'] as Map?, 'varna')?.toString() ?? '0',
+        'area': ashtakoot['varna']?['description']?.toString() ?? 'Work / Refinement',
+      },
+      {
+        'attribute': 'Vashya',
+        'male': ashtakoot['vasya']?['boy_vasya']?.toString() ?? '-',
+        'female': ashtakoot['vasya']?['girl_vasya']?.toString() ?? '-',
+        'outOf': '2',
+        'received': getVal(ashtakoot['vasya'] as Map?, 'vasya')?.toString() ?? '0',
+        'area': ashtakoot['vasya']?['description']?.toString() ?? 'Dominance / Attraction',
+      },
+      {
+        'attribute': 'Tara',
+        'male': ashtakoot['tara']?['boy_tara']?.toString() ?? '-',
+        'female': ashtakoot['tara']?['girl_tara']?.toString() ?? '-',
+        'outOf': '3',
+        'received': getVal(ashtakoot['tara'] as Map?, 'tara')?.toString() ?? '0',
+        'area': ashtakoot['tara']?['description']?.toString() ?? 'Destiny / Health',
+      },
+      {
+        'attribute': 'Yoni',
+        'male': ashtakoot['yoni']?['boy_yoni']?.toString() ?? '-',
+        'female': ashtakoot['yoni']?['girl_yoni']?.toString() ?? '-',
+        'outOf': '4',
+        'received': getVal(ashtakoot['yoni'] as Map?, 'yoni')?.toString() ?? '0',
+        'area': ashtakoot['yoni']?['description']?.toString() ?? 'Intimacy / Compatibility',
+      },
+      {
+        'attribute': 'Maitri',
+        'male': ashtakoot['grahamaitri']?['boy_lord']?.toString() ?? '-',
+        'female': ashtakoot['grahamaitri']?['girl_lord']?.toString() ?? '-',
+        'outOf': '5',
+        'received': getVal(ashtakoot['grahamaitri'] as Map?, 'grahamaitri')?.toString() ?? '0',
+        'area': ashtakoot['grahamaitri']?['description']?.toString() ?? 'Friendship / Mental Affinity',
+      },
+      {
+        'attribute': 'Gana',
+        'male': ashtakoot['gana']?['boy_gana']?.toString() ?? ashtakoot['gan']?['boy_gan']?.toString() ?? '-',
+        'female': ashtakoot['gana']?['girl_gana']?.toString() ?? ashtakoot['gan']?['girl_gan']?.toString() ?? '-',
+        'outOf': '6',
+        'received': (getVal(ashtakoot['gana'] as Map?, 'gana') ?? getVal(ashtakoot['gan'] as Map?, 'gan'))?.toString() ?? '0',
+        'area': ashtakoot['gana']?['description']?.toString() ?? ashtakoot['gan']?['description']?.toString() ?? 'Temperament',
+      },
+      {
+        'attribute': 'Bhakoot',
+        'male': ashtakoot['bhakoot']?['boy_rasi_name']?.toString() ?? '-',
+        'female': ashtakoot['bhakoot']?['girl_rasi_name']?.toString() ?? '-',
+        'outOf': '7',
+        'received': getVal(ashtakoot['bhakoot'] as Map?, 'bhakoot')?.toString() ?? '0',
+        'area': ashtakoot['bhakoot']?['description']?.toString() ?? 'Love / Family Harmony',
+      },
+      {
+        'attribute': 'Nadi',
+        'male': ashtakoot['nadi']?['boy_nadi']?.toString() ?? '-',
+        'female': ashtakoot['nadi']?['girl_nadi']?.toString() ?? '-',
+        'outOf': '8',
+        'received': getVal(ashtakoot['nadi'] as Map?, 'nadi')?.toString() ?? '0',
+        'area': ashtakoot['nadi']?['description']?.toString() ?? 'Health & Genes / Progeny',
+      },
+    ];
+
+    num totalRec = 0;
+    for (final g in gunas) {
+      totalRec += num.tryParse(g['received']!) ?? 0;
+    }
+    final scoreDisplay = ashtakoot['score']?.toString() ?? ashtakoot['total_score']?.toString() ?? totalRec.toString();
+    final rajjuDosha = ashtakoot['rajju_dosha']?.toString() ?? 'No';
+    final vedhaDosha = ashtakoot['vedha_dosha']?.toString() ?? 'No';
+    final manglikMatch = ashtakoot['manglik_match']?.toString() ?? manglik['manglik_match']?.toString() ?? 'Yes';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("COUPLE MATCH SUMMARY", style: AppTextStyles.h4),
+        SizedBox(height: 16.h),
+        Row(
+          children: [
+            Expanded(child: _buildDoshaCard('Ashtakoot', '$scoreDisplay/36')),
+            SizedBox(width: 8.w),
+            Expanded(child: _buildDoshaCard('Rajjoo Dosha', rajjuDosha)),
+            SizedBox(width: 8.w),
+            Expanded(child: _buildDoshaCard('Vedha Dosha', vedhaDosha)),
+            SizedBox(width: 8.w),
+            Expanded(child: _buildDoshaCard('Manglik Match', manglikMatch)),
+          ],
+        ),
+        SizedBox(height: 24.h),
+        Text("ASHTAKOOT GUNAS BREAKDOWN", style: AppTextStyles.h4),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.brown.shade100),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
+              columns: const [
+                DataColumn(label: Text('Attribute')),
+                DataColumn(label: Text('Male')),
+                DataColumn(label: Text('Female')),
+                DataColumn(label: Text('Out of')),
+                DataColumn(label: Text('Received')),
+                DataColumn(label: Text('Area Of Life')),
+              ],
+              rows: gunas.map((g) {
+                return DataRow(cells: [
+                  DataCell(Text(g['attribute']!, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataCell(Text(g['male']!)),
+                  DataCell(Text(g['female']!)),
+                  DataCell(Text(g['outOf']!)),
+                  DataCell(Text(g['received']!, style: TextStyle(color: Colors.brown.shade800, fontWeight: FontWeight.bold))),
+                  DataCell(Text(g['area']!)),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildDoshaCard(String title, String value) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
+      padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 4.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
@@ -568,24 +782,45 @@ class MatchmakingPage extends GetView<MatchmakingController> {
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(color: Colors.brown.shade100, shape: BoxShape.circle),
-            child: Icon(Icons.stars, color: Colors.brown, size: 24.sp),
+            child: Icon(Icons.stars, color: Colors.brown, size: 22.sp),
           ),
           SizedBox(height: 8.h),
-          Text(title, style: AppTextStyles.bodySmall.copyWith(fontSize: 10.sp)),
+          Text(title, style: AppTextStyles.bodySmall.copyWith(fontSize: 10.sp), textAlign: TextAlign.center),
           SizedBox(height: 4.h),
-          Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          Text(value, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
   Widget _buildPlanetDetailsTab() {
+    final res = controller.matchmakingResult;
+    final planets = (res['planets'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    List parsePlanets(dynamic raw) {
+      if (raw == null) return [];
+      if (raw is List) return raw;
+      if (raw is Map) {
+        return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            .map((k) => raw[k] ?? raw[k.toString()])
+            .where((p) => p != null)
+            .toList();
+      }
+      return [];
+    }
+
+    final boyPlanets = parsePlanets(planets['boy']);
+    final girlPlanets = parsePlanets(planets['girl']);
+
+    final boyName = controller.mNameController.text.trim().toUpperCase();
+    final girlName = controller.fNameController.text.trim().toUpperCase();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildPlanetTable("BOY'S PLANET DETAILS", []),
+        _buildPlanetTable(boyName.isEmpty ? "BOY'S PLANET DETAILS" : "$boyName'S PLANET DETAILS", boyPlanets),
         SizedBox(height: 24.h),
-        _buildPlanetTable("GIRL'S PLANET DETAILS", []),
+        _buildPlanetTable(girlName.isEmpty ? "GIRL'S PLANET DETAILS" : "$girlName'S PLANET DETAILS", girlPlanets),
       ],
     );
   }
@@ -602,28 +837,47 @@ class MatchmakingPage extends GetView<MatchmakingController> {
         SizedBox(height: 12.h),
         Container(
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.r), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(Colors.orange.shade50),
               columns: const [
-                DataColumn(label: Text('planets')),
+                DataColumn(label: Text('Planet')),
                 DataColumn(label: Text('Sign')),
                 DataColumn(label: Text('Sign Lord')),
                 DataColumn(label: Text('Degree')),
                 DataColumn(label: Text('House')),
               ],
-              rows: planetsData.isEmpty ? [
-                const DataRow(cells: [DataCell(Text('ASCENDANT')), DataCell(Text('Gemini')), DataCell(Text('Mercury')), DataCell(Text('11.20')), DataCell(Text('1'))]),
-                const DataRow(cells: [DataCell(Text('SUN')), DataCell(Text('Pisces')), DataCell(Text('Jupiter')), DataCell(Text('22.87')), DataCell(Text('10'))]),
-              ] : planetsData.map((p) => DataRow(cells: [
-                DataCell(Text(p['name'] ?? '')),
-                DataCell(Text(p['sign'] ?? '')),
-                DataCell(Text(p['sign_lord'] ?? '')),
-                DataCell(Text(p['degree']?.toString() ?? '')),
-                DataCell(Text(p['house']?.toString() ?? '')),
-              ])).toList(),
+              rows: planetsData.isEmpty
+                  ? [
+                      const DataRow(cells: [
+                        DataCell(Text('-')),
+                        DataCell(Text('-')),
+                        DataCell(Text('-')),
+                        DataCell(Text('-')),
+                        DataCell(Text('-')),
+                      ])
+                    ]
+                  : planetsData.map((p) {
+                      final pMap = (p as Map).cast<String, dynamic>();
+                      final name = pMap['full_name'] ?? pMap['name'] ?? 'Planet';
+                      final sign = pMap['sign'] ?? pMap['rasi'] ?? '-';
+                      final signLord = pMap['sign_lord'] ?? pMap['lord'] ?? '-';
+                      final degree = pMap['normDegree']?.toString() ?? pMap['degree']?.toString() ?? '-';
+                      final house = pMap['house']?.toString() ?? '-';
+                      return DataRow(cells: [
+                        DataCell(Text(name.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                        DataCell(Text(sign.toString())),
+                        DataCell(Text(signLord.toString())),
+                        DataCell(Text(degree.toString())),
+                        DataCell(Text(house.toString())),
+                      ]);
+                    }).toList(),
             ),
           ),
         ),
@@ -632,12 +886,31 @@ class MatchmakingPage extends GetView<MatchmakingController> {
   }
 
   Widget _buildLagnaChartTab() {
-    final boyName = controller.mNameController.text.toUpperCase();
-    final girlName = controller.fNameController.text.toUpperCase();
-    
-    // Mock house data if backend doesn't provide exact structure
-    final boyHouses = { "1": ["As"], "2": ["Mo", "Sa"], "4": ["Ra"], "7": ["Su", "Ve"], "10": ["Ke"]};
-    final girlHouses = { "1": ["As"], "7": ["Mo"], "12": ["Su", "Ma", "Sa"], "2": ["Me", "Ra"], "8": ["Ke"]};
+    final res = controller.matchmakingResult;
+    final charts = (res['charts'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    Map<String, List<String>> parseHouses(dynamic rawChart) {
+      if (rawChart == null) return {};
+      final Map<String, List<String>> housesMap = {};
+      if (rawChart is Map) {
+        rawChart.forEach((key, val) {
+          final houseStr = key.toString();
+          if (val is List) {
+            housesMap[houseStr] = val.map((e) => e.toString()).toList();
+          } else if (val is Map) {
+            final planetsInHouse = (val['planets'] as List?)?.map((e) => e.toString()).toList() ?? [];
+            housesMap[houseStr] = planetsInHouse;
+          }
+        });
+      }
+      return housesMap;
+    }
+
+    final boyHouses = parseHouses(charts['boy'] ?? charts['boy_chart'] ?? charts['boy_lagna']);
+    final girlHouses = parseHouses(charts['girl'] ?? charts['girl_chart'] ?? charts['girl_lagna']);
+
+    final boyName = controller.mNameController.text.trim().toUpperCase();
+    final girlName = controller.fNameController.text.trim().toUpperCase();
 
     return Column(
       children: [
@@ -681,13 +954,18 @@ class MatchmakingPage extends GetView<MatchmakingController> {
     return Container(
       color: Colors.white,
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildMenuTab('free_janam_kundali'.tr, false, onTap: () => Get.offNamed('/kundli')),
-          SizedBox(width: 16.w),
-          _buildMenuTab('kundali_matching'.tr, true),
-        ],
+      width: double.infinity,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildMenuTab('free_janam_kundali'.tr, false, onTap: () => Get.offNamed('/kundli')),
+            SizedBox(width: 12.w),
+            _buildMenuTab('kundali_matching'.tr, true),
+          ],
+        ),
       ),
     );
   }

@@ -11,26 +11,30 @@ class SplashController extends GetxController {
   }
 
   void _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await Future.delayed(const Duration(seconds: 2));
 
-    final prefs = await SharedPreferences.getInstance();
-    final token =
-        prefs.getString(AppConstants.keyToken) ?? prefs.getString('token');
-    final isLoggedIn =
-        prefs.getBool(AppConstants.keyIsLoggedIn) ?? (token?.isNotEmpty ?? false);
-    final profileComplete = prefs.getBool(AppConstants.keyProfileComplete) ??
-        prefs.getBool('user_profile_complete') ??
-        false;
+      final prefs = await SharedPreferences.getInstance();
+      final token =
+          prefs.getString(AppConstants.keyToken) ?? prefs.getString('token');
+      final isLoggedIn =
+          prefs.getBool(AppConstants.keyIsLoggedIn) ?? (token?.isNotEmpty ?? false);
+      final profileComplete = prefs.getBool(AppConstants.keyProfileComplete) ??
+          prefs.getBool('user_profile_complete') ??
+          false;
 
-    if (!isLoggedIn || token == null || token.isEmpty) {
+      if (!isLoggedIn || token == null || token.isEmpty) {
+        Get.offAllNamed(AppRoutes.login);
+        return;
+      }
+
+      if (profileComplete) {
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.offAllNamed(AppRoutes.register);
+      }
+    } catch (_) {
       Get.offAllNamed(AppRoutes.login);
-      return;
-    }
-
-    if (profileComplete) {
-      Get.offAllNamed(AppRoutes.dashboard);
-    } else {
-      Get.offAllNamed(AppRoutes.register);
     }
   }
 }

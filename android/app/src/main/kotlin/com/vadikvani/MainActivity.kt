@@ -1,4 +1,4 @@
-package com.example.astrology_user
+package com.vadikvani
 
 import io.flutter.embedding.android.FlutterActivity
 

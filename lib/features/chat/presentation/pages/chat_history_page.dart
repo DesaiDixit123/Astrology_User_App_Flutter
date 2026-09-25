@@ -1,3 +1,5 @@
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -109,7 +111,7 @@ class ChatHistoryPage extends GetView<ChatHistoryController> {
   Widget _buildChatTile(Map session) {
     final partner = session['astrologer_id'] ?? {};
     final personalDetails = partner['personal_details'] as Map? ?? {};
-    final name = personalDetails['name'] as String? ?? partner['name'] as String? ?? 'Astrologer';
+    final name = AstrologerUtils.getLocalizedAstrologerName(session);
     final rawImage = personalDetails['profile_image'] as String? ?? partner['profile_pic'] as String? ?? '';
     final imageUrl = ApiConstants.resolveImage(rawImage);
 
@@ -147,7 +149,10 @@ class ChatHistoryPage extends GetView<ChatHistoryController> {
       ),
       title: Text(
         name,
-        style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+        style: AppTextStyles.bodyLarge.copyWith(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
       ),
       subtitle: Padding(
         padding: EdgeInsets.only(top: 4.h),

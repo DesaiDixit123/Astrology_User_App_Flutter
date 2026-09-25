@@ -1,7 +1,9 @@
+import 'package:astrology_user/config/routes/app_routes.dart';
 import 'package:astrology_user/core/theme/app_colors.dart';
 import 'package:astrology_user/core/constants/app_constants.dart';
 import 'package:astrology_user/core/localization/app_language_controller.dart';
 import 'package:astrology_user/core/theme/app_text_styles.dart';
+import 'package:astrology_user/core/theme/app_theme_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -17,6 +19,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final AppLanguageController languageController =
       Get.find<AppLanguageController>();
+  final AppThemeController themeController = Get.find<AppThemeController>();
   final ProfileController profileController = Get.find<ProfileController>();
   bool notificationsEnabled = true;
   bool emailNotifications = false;
@@ -28,25 +31,6 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: Text('settings'.tr)),
       body: ListView(
         children: [
-          // _buildSection('notifications'.tr),
-          // _buildSwitchTile(
-          //   'push_notifications'.tr,
-          //   'push_notifications_subtitle'.tr,
-          //   notificationsEnabled,
-          //   (value) => setState(() => notificationsEnabled = value),
-          // ),
-          // _buildSwitchTile(
-          //   'email_notifications'.tr,
-          //   'email_notifications_subtitle'.tr,
-          //   emailNotifications,
-          //   (value) => setState(() => emailNotifications = value),
-          // ),
-          // _buildSwitchTile(
-          //   'sms_notifications'.tr,
-          //   'sms_notifications_subtitle'.tr,
-          //   smsNotifications,
-          //   (value) => setState(() => smsNotifications = value),
-          // ),
           Divider(height: 1.h, color: AppColors.border),
           _buildSection('preferences'.tr),
           Obx(
@@ -57,16 +41,16 @@ class _SettingsPageState extends State<SettingsPage> {
               () => _showLanguageDialog(),
             ),
           ),
-          _buildListTile('theme'.tr, 'light'.tr, Icons.brightness_6, () {}),
+          Obx(
+            () => _buildListTile(
+              'theme'.tr,
+              themeController.isDarkMode ? 'dark'.tr : 'light'.tr,
+              themeController.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+              () => _showThemeDialog(),
+            ),
+          ),
           Divider(height: 1.h, color: AppColors.border),
           _buildSection('account'.tr),
-          //  _buildListTile('change_password'.tr, '', Icons.lock_outline, () {}),
-          // _buildListTile(
-          //   'privacy_settings'.tr,
-          //   '',
-          //   Icons.privacy_tip_outlined,
-          //   () {},
-          // ),
           _buildListTile(
             'delete_account'.tr,
             '',
@@ -80,13 +64,13 @@ class _SettingsPageState extends State<SettingsPage> {
             'terms_conditions'.tr,
             '',
             Icons.description_outlined,
-            () {},
+            () => Get.toNamed(AppRoutes.terms),
           ),
           _buildListTile(
             'privacy_policy'.tr,
             '',
             Icons.privacy_tip_outlined,
-            () {},
+            () => Get.toNamed(AppRoutes.privacyPolicy),
           ),
           _buildListTile(
             'app_version'.tr,
@@ -110,21 +94,6 @@ class _SettingsPageState extends State<SettingsPage> {
           letterSpacing: 0.5,
         ),
       ),
-    );
-  }
-
-  Widget _buildSwitchTile(
-    String title,
-    String subtitle,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return SwitchListTile(
-      title: Text(title, style: AppTextStyles.bodyMedium),
-      subtitle: Text(subtitle, style: AppTextStyles.caption),
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: AppColors.primary,
     );
   }
 
@@ -180,6 +149,50 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               );
             }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showThemeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('theme'.tr),
+        content: Obx(
+          () => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.light_mode, color: Colors.orange),
+                title: Text('light'.tr),
+                trailing: !themeController.isDarkMode
+                    ? Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () async {
+                  await themeController.setThemeMode(ThemeMode.light);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.dark_mode, color: Colors.purple),
+                title: Text('dark'.tr),
+                trailing: themeController.isDarkMode
+                    ? Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                onTap: () async {
+                  await themeController.setThemeMode(ThemeMode.dark);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),

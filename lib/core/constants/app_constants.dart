@@ -9,7 +9,7 @@ class AppConstants {
   static const String baseUrl = 'https://api.vedikvani.com/';
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
-  static const String razorpayKeyId = 'rzp_test_SV2JFRNjdY0Avz';
+  static const String razorpayKeyId = 'rzp_live_T690exIdAcKXHs';
 
   // Storage Keys
   static const String keyToken = 'auth_token';

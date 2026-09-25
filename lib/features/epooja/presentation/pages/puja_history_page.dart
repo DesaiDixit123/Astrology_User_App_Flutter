@@ -16,11 +16,14 @@ class PujaHistoryPage extends StatefulWidget {
 }
 
 class _PujaHistoryPageState extends State<PujaHistoryPage> {
-  final controller = Get.find<PujaController>();
+  late final PujaController controller;
 
   @override
   void initState() {
     super.initState();
+    controller = Get.isRegistered<PujaController>()
+        ? Get.find<PujaController>()
+        : Get.put(PujaController());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.getMyPujaOrders();
     });
@@ -305,13 +308,30 @@ class PujaHistoryDetailPage extends StatelessWidget {
              ]),
              SizedBox(height: 25.h),
              if (order.shippingDetails != null)
-               _buildInfoSection('SHIPPING DETAILS', [
-                 _infoRow('Recipient', order.shippingDetails!['name'] ?? 'N/A'),
-                 _infoRow('Phone', order.shippingDetails!['phone_no'] ?? 'N/A'),
-                 _infoRow('Address', '${order.shippingDetails!['flat_house_no']}, ${order.shippingDetails!['locality']}'),
-                 _infoRow('City', '${order.shippingDetails!['city']}, ${order.shippingDetails!['state']}'),
-                 _infoRow('Pincode', order.shippingDetails!['pincode'] ?? 'N/A'),
-               ]),
+                _buildInfoSection('SHIPPING DETAILS', [
+                  _infoRow('Recipient', order.shippingDetails!['name']?.toString() ?? 'N/A'),
+                  _infoRow('Phone', (order.shippingDetails!['phone_no'] ?? order.shippingDetails!['phone'])?.toString() ?? 'N/A'),
+                  _infoRow(
+                    'Address',
+                    [
+                      order.shippingDetails!['flat_house_no'] ?? order.shippingDetails!['flat_no'],
+                      order.shippingDetails!['locality'],
+                      order.shippingDetails!['landmark']
+                    ]
+                        .where((e) => e != null && e.toString().trim().isNotEmpty && e.toString().trim() != 'null')
+                        .join(', '),
+                  ),
+                  _infoRow(
+                    'City',
+                    [
+                      order.shippingDetails!['city'],
+                      order.shippingDetails!['state']
+                    ]
+                        .where((e) => e != null && e.toString().trim().isNotEmpty && e.toString().trim() != 'null')
+                        .join(', '),
+                  ),
+                  _infoRow('Pincode', order.shippingDetails!['pincode']?.toString() ?? 'N/A'),
+                ]),
              SizedBox(height: 25.h),
              _buildInfoSection('PAYMENT INFORMATION', [
                _infoRow('Amount Paid', '₹${order.amount}'),

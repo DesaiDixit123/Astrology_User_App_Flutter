@@ -1,6 +1,7 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:astrology_user/core/theme/app_colors.dart';
 import 'package:astrology_user/core/theme/app_text_styles.dart';
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
 import 'package:astrology_user/shared/widgets/premium_card.dart';
 import 'package:astrology_user/features/astrologers/presentation/pages/following_page.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,7 @@ class ProfilePage extends GetView<ProfileController> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      controller.userData['name'] ?? 'User',
+                      GujaratiScriptUtils.toGujaratiName(controller.userData['name']?.toString() ?? 'user'.tr),
                       style: AppTextStyles.displayMedium.copyWith(
                         color: Colors.white,
                       ),
@@ -192,7 +193,16 @@ class ProfilePage extends GetView<ProfileController> {
           'order_history'.tr,
           () => Get.toNamed(AppRoutes.orders),
         ),
-        //   _buildMenuItem(Icons.shopping_bag_outlined, 'shop_orders'.tr, () => Get.toNamed(AppRoutes.shopOrders)),
+        _buildMenuItem(
+          Icons.shopping_bag_outlined,
+          'shop_orders'.tr,
+          () => Get.toNamed(AppRoutes.shopOrders),
+        ),
+        _buildMenuItem(
+          Icons.temple_hindu_outlined,
+          'my_puja_orders'.tr,
+          () => Get.toNamed(AppRoutes.pujaHistory),
+        ),
         _buildMenuItem(
           Icons.receipt_long_outlined,
           'transactions'.tr,
@@ -200,7 +210,7 @@ class ProfilePage extends GetView<ProfileController> {
         ),
         _buildMenuItem(
           Icons.favorite_rounded,
-          'My Following',
+          'my_following'.tr,
           () => Get.to(() => const FollowingPage()),
         ),
         _buildMenuItem(

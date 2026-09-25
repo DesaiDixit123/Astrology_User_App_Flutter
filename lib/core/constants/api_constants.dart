@@ -1,15 +1,16 @@
 class ApiConstants {
   // ── Base URL (Dynamically Resolvable) ─────
-  //static String baseUrl = 'http://10.0.2.2:3050';
-
-  //static String baseUrl = 'http://192.168.1.6:3050';
-  static String baseUrl = 'https://api.vedikvani.com/';
+  static String baseUrl = 'https://api.vedikvani.com';
 
   static void updateBaseUrl(String url) {
-    if (url.startsWith('http')) {
-      baseUrl = url;
+    var cleaned = url.trim();
+    while (cleaned.endsWith('/')) {
+      cleaned = cleaned.substring(0, cleaned.length - 1);
+    }
+    if (cleaned.startsWith('http')) {
+      baseUrl = cleaned;
     } else {
-      baseUrl = 'http://$url:3050';
+      baseUrl = 'http://$cleaned:3050';
     }
   }
 
@@ -87,9 +88,15 @@ class ApiConstants {
   static const String panchangByDate = '/customer/panchang/by-date';
   static const String panchangBrief = '/customer/panchang/brief';
   static const String kundli = '/customer/kundli/generate';
+  static const String kundliGetDetails = '/customer/kundli/get-details';
   static const String savedKundlis = '/customer/kundli/saved';
   static const String kundliPdf = '/customer/kundli/pdf';
   static const String kundliMatch = '/customer/matching/basic-details';
+  static const String matchingBasicDetails = '/customer/matching/basic-details';
+  static const String matchingAshtakoot = '/customer/matching/ashtakoot-points';
+  static const String matchingPlanetDetails = '/customer/matching/planet-details';
+  static const String matchingCharts = '/customer/matching/charts';
+  static const String matchingManglik = '/customer/matching/manglik-report';
   static const String matchingHistory = '/customer/matching/history';
   static const String numerology = '/customer/numerology';
 
@@ -126,4 +133,7 @@ class ApiConstants {
   static const String terms = '/api/common/terms';
   static const String privacy = '/api/common/privacy';
   static const String upload = '/api/common/upload';
+  static const String locationCountries = '/customer/location/countries';
+  static const String locationStates = '/customer/location/states';
+  static const String locationCities = '/customer/location/cities';
 }

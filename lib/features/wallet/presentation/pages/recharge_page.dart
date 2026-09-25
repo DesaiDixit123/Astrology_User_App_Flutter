@@ -140,7 +140,7 @@ class _RechargePageState extends State<RechargePage> {
                               if (bonus > 0) ...[
                                 SizedBox(height: 4.h),
                                 Text(
-                                  '+₹$bonus bonus',
+                                  Get.locale?.languageCode == 'gu' ? '+₹$bonus બોનસ' : '+₹$bonus bonus',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: _selectedAmount == amount
                                         ? Colors.white
@@ -164,7 +164,7 @@ class _RechargePageState extends State<RechargePage> {
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text(
-                      'No recharge options found.',
+                      'no_data_found'.tr,
                       style: AppTextStyles.bodyMedium,
                     ),
                   ),

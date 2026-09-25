@@ -1,3 +1,5 @@
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
+import 'package:astrology_user/core/utils/astrologer_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -32,7 +34,7 @@ class _ChatListPageState extends State<ChatListPage> {
         'updatedAt': DateTime.now().toUtc().toIso8601String(),
         'partner': {
           '_id': 'partner_1',
-          'name': 'Acharya Ravi',
+          'name': 'Shloka Patel',
           'profilePic': 'https://i.pravatar.cc/150?img=12',
         },
       },
@@ -55,9 +57,7 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   String _partnerName(Map c) {
-    final p = c['partner'];
-    if (p is Map) return p['name'] as String? ?? 'Astrologer';
-    return 'Astrologer';
+    return AstrologerUtils.getLocalizedAstrologerName(c);
   }
 
   String? _partnerPic(Map c) {
@@ -68,154 +68,109 @@ class _ChatListPageState extends State<ChatListPage> {
 
   String _status(Map c) => c['status'] as String? ?? 'Pending';
 
-  String _formatDate(dynamic raw) {
-    if (raw == null) return '';
-    try {
-      final dt = DateTime.parse(raw.toString()).toLocal();
-      final now = DateTime.now();
-      final diff = now.difference(dt);
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
-      return '${dt.day}/${dt.month}/${dt.year}';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'Accepted':
-      case 'InProgress':
-        return Colors.green;
-      case 'Completed':
-        return Colors.grey;
-      case 'Rejected':
-      case 'Cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Chats'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
+        title: Text('chat_on'.tr),
+        centerTitle: true,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : chatHistory.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64.sp,
-                    color: Colors.grey.shade300,
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline,
+                          size: 64.sp, color: Colors.grey),
+                      SizedBox(height: 16.h),
+                      Text('no_chat_history'.tr,
+                          style: AppTextStyles.bodyLarge),
+                    ],
                   ),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'No chat history yet',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  ElevatedButton.icon(
-                    onPressed: () => Get.toNamed(AppRoutes.astrologerList),
-                    icon: const Icon(Icons.search),
-                    label: const Text('Find an Astrologer'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: () async {
-                setState(() => isLoading = true);
-                await _loadHistory();
-              },
-              child: ListView.separated(
-                itemCount: chatHistory.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final chat = chatHistory[index];
-                  return _buildChatTile(chat);
-                },
-              ),
-            ),
-    );
-  }
+                )
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() => isLoading = true);
+                    await _loadHistory();
+                  },
+                  child: ListView.separated(
+                    padding: EdgeInsets.all(16.w),
+                    itemCount: chatHistory.length,
+                    separatorBuilder: (context, index) =>
+                        SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      final chat = chatHistory[index];
+                      final name = _partnerName(chat);
+                      final pic = _partnerPic(chat);
+                      final status = _status(chat);
 
-  Widget _buildChatTile(Map chat) {
-    final name = _partnerName(chat);
-    final pic = _partnerPic(chat);
-    final status = _status(chat);
-    final time = _formatDate(chat['updatedAt'] ?? chat['createdAt']);
-    final isActive =
-        status == 'Pending' || status == 'Accepted' || status == 'InProgress';
-
-    return ListTile(
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      leading: CircleAvatar(
-        radius: 24.r,
-        backgroundColor: AppColors.primary,
-        backgroundImage: pic != null && pic.isNotEmpty
-            ? NetworkImage(pic)
-            : null,
-        child: (pic == null || pic.isEmpty)
-            ? Text(
-                name[0].toUpperCase(),
-                style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
-              )
-            : null,
-      ),
-      title: Text(
-        name,
-        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Row(
-        children: [
-          Container(
-            width: 8.w,
-            height: 8.h,
-            margin: EdgeInsets.only(right: 6.w),
-            decoration: BoxDecoration(
-              color: _statusColor(status),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Text(status, style: AppTextStyles.caption),
-        ],
-      ),
-      trailing: Text(time, style: AppTextStyles.caption),
-      onTap: () {
-        if (isActive) {
-          Get.toNamed(
-            AppRoutes.chat,
-            arguments: {
-              ...Map.from(chat['partner'] is Map ? chat['partner'] : {}),
-              'consultationId': chat['_id'],
-            },
-          );
-        } else {
-          final partner = chat['partner'];
-          if (partner is Map) {
-            Get.toNamed(AppRoutes.chat, arguments: Map.from(partner));
-          }
-        }
-      },
+                      return InkWell(
+                        onTap: () {
+                          Get.toNamed(
+                            AppRoutes.chat,
+                            arguments: {
+                              'consultationId': chat['_id'],
+                              'partner': chat['partner'],
+                            },
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.shadow,
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24.r,
+                                backgroundColor: AppColors.primary,
+                                backgroundImage: pic != null && pic.isNotEmpty
+                                    ? NetworkImage(pic)
+                                    : null,
+                                child: pic == null || pic.isEmpty
+                                    ? const Icon(Icons.person,
+                                        color: Colors.white)
+                                    : null,
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: AppTextStyles.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      '${'consultation_fee'.tr}: $status',
+                                      style: AppTextStyles.caption,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.chevron_right,
+                                  color: AppColors.textHint),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }

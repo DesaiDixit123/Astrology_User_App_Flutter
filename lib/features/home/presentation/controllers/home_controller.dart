@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 
 class HomeController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -128,11 +129,24 @@ class HomeController extends GetxController {
   }
 
   Future<void> loadData() async {
-    isLoading.value = true;
+    isLoading.value = banners.isEmpty;
+    if (banners.isEmpty) {
+      banners.value = _defaultBanners;
+    }
 
-    // Fetch free chat settings from backend
     try {
-      final settingsRes = await _api.get(ApiConstants.freeChatSettings);
+      // Execute free chat settings, profile, and home API calls in PARALLEL for ultra-fast loading
+      final results = await Future.wait([
+        _api.get(ApiConstants.home),
+        _api.get(ApiConstants.freeChatSettings),
+        _api.get(ApiConstants.profile),
+      ]);
+
+      final homeRes = results[0];
+      final settingsRes = results[1];
+      final profileRes = results[2];
+
+      // Parse free chat settings
       if (ApiService.isSuccess(settingsRes)) {
         final settingsData = ApiService.getData(settingsRes) as Map<String, dynamic>?;
         if (settingsData != null) {
@@ -140,51 +154,129 @@ class HomeController extends GetxController {
           freeChatDurationMinutes.value = settingsData['duration_minutes'] ?? 1;
         }
       }
-    } catch (e) {
-      print('Error fetching free chat settings in home: $e');
-    }
 
-    // Fetch user profile to check free chat eligibility
-    try {
-      final profileRes = await _api.get(ApiConstants.profile);
+      // Parse profile eligibility
       if (ApiService.isSuccess(profileRes)) {
         final profileData = ApiService.getData(profileRes) as Map<String, dynamic>?;
         if (profileData != null) {
           isFreeChatEligible.value = isFreeChatEnabled.value && (profileData['is_free_chat_used'] != true);
         }
       }
-    } catch (e) {
-      print('Error fetching profile in home: $e');
-    }
 
-    // Fetch home data (combined endpoint) — falls back to individual if needed
-    final homeRes = await _api.get(ApiConstants.home);
-    if (ApiService.isSuccess(homeRes)) {
-      final data = ApiService.getData(homeRes) as Map<String, dynamic>?;
-      if (data != null) {
-        banners.value = List.from(data['banners'] ?? []);
-        topAstrologers.value = _normalizeAstrologers(data['topAstrologers']);
-        liveAstrologers.value = _normalizeAstrologers(data['liveAstrologers']);
-        blogs.value = List.from(data['blogs'] ?? []);
+      // Parse home data
+      if (ApiService.isSuccess(homeRes)) {
+        final data = ApiService.getData(homeRes) as Map<String, dynamic>?;
+        if (data != null) {
+          final fetchedBanners = List.from(data['banners'] ?? []);
+          final validRemoteBanners = fetchedBanners.where((b) {
+            final img = (b['image'] ?? b['banner'] ?? '').toString();
+            return img.isNotEmpty && !img.contains('banner_1.png') && !img.contains('banner_2.png') && !img.contains('banner_3.png');
+          }).toList();
+
+          if (validRemoteBanners.isNotEmpty) {
+            banners.value = validRemoteBanners;
+          }
+          topAstrologers.value = _normalizeAstrologers(data['topAstrologers']);
+          liveAstrologers.value = _normalizeAstrologers(data['liveAstrologers']);
+          blogs.value = List.from(data['blogs'] ?? []);
+          videos.value = List.from(data['videos'] ?? []);
+        }
+      } else {
+        // Fallback: fetch individually in parallel
+        await Future.wait([
+          _fetchBanners(),
+          _fetchTopAstrologers(),
+          _fetchLiveAstrologers(),
+          _fetchBlogs(),
+          _fetchVideos(),
+        ]);
       }
-    } else {
-      // Fallback: fetch individually
-      await Future.wait([
-        _fetchBanners(),
-        _fetchTopAstrologers(),
-        _fetchLiveAstrologers(),
-        _fetchBlogs()
-      ]);
+    } catch (e) {
+      print('Error loading home data: $e');
+    } finally {
+      isLoading.value = false;
+      if (banners.isNotEmpty) startBannerAutoScroll();
     }
+  }
 
-    isLoading.value = false;
-    if (banners.isNotEmpty) startBannerAutoScroll();
+  static List get _defaultBanners {
+    final lang = Get.locale?.languageCode ?? 'en';
+    if (lang == 'gu') {
+      return [
+        {
+          'title': 'વૈદિક જ્યોતિષ પરામર્શ',
+          'subtitle': 'તમારું ભાગ્ય જાણો | સચોટ કુંડળી વિશ્લેષણ',
+          'image': 'assets/images/banner_1.jpg',
+          'isAsset': true,
+        },
+        {
+          'title': 'પવિત્ર કુંડળી માર્ગદર્શન',
+          'subtitle': 'ટોચના ચકાસાયેલ વૈદિક જ્યોતિષીઓ સાથે જોડાઓ',
+          'image': 'assets/images/banner_2.jpg',
+          'isAsset': true,
+        },
+        {
+          'title': 'લાઇવ જ્યોતિષીય સલાહ',
+          'subtitle': 'વ્યક્તિગત ચાર્ટ રીડિંગ અને દૈનિક આધ્યાત્મિક જ્ઞાન',
+          'image': 'assets/images/banner_3.jpg',
+          'isAsset': true,
+        },
+      ];
+    } else if (lang == 'hi') {
+      return [
+        {
+          'title': 'वैदिक ज्योतिष परामर्श',
+          'subtitle': 'अपना भाग्य जानें | प्रामाणिक कुंडली विश्लेषण',
+          'image': 'assets/images/banner_1.jpg',
+          'isAsset': true,
+        },
+        {
+          'title': 'पवित्र कुंडली मार्गदर्शन',
+          'subtitle': 'शीर्ष सत्यापित वैदिक ज्योतिषियों से जुड़ें',
+          'image': 'assets/images/banner_2.jpg',
+          'isAsset': true,
+        },
+        {
+          'title': 'लाइव ज्योतिष सलाह',
+          'subtitle': 'व्यक्तिगत चार्ट रीडिंग और दैनिक आध्यात्मिक ज्ञान',
+          'image': 'assets/images/banner_3.jpg',
+          'isAsset': true,
+        },
+      ];
+    }
+    return [
+      {
+        'title': 'Vedic Astrology Consultation',
+        'subtitle': 'Unveil Your Destiny | Authentic Kundali Readings',
+        'image': 'assets/images/banner_1.jpg',
+        'isAsset': true,
+      },
+      {
+        'title': 'Sacred Kundali Guidance',
+        'subtitle': 'Connect with Top Verified Vedic Astrologers',
+        'image': 'assets/images/banner_2.jpg',
+        'isAsset': true,
+      },
+      {
+        'title': 'Live Astrology Advice',
+        'subtitle': 'Personalized Chart Readings & Daily Cosmic Wisdom',
+        'image': 'assets/images/banner_3.jpg',
+        'isAsset': true,
+      },
+    ];
   }
 
   Future<void> _fetchBanners() async {
     final res = await _api.get(ApiConstants.banners);
     if (ApiService.isSuccess(res)) {
-      banners.value = List.from(ApiService.getData(res) ?? []);
+      final fetched = List.from(ApiService.getData(res) ?? []);
+      final validBanners = fetched.where((b) {
+        final img = (b['image'] ?? b['banner'] ?? '').toString();
+        return img.isNotEmpty && !img.contains('banner_1.png') && !img.contains('banner_2.png') && !img.contains('banner_3.png');
+      }).toList();
+      banners.value = validBanners.isNotEmpty ? validBanners : _defaultBanners;
+    } else {
+      banners.value = _defaultBanners;
     }
   }
 
@@ -210,6 +302,14 @@ class HomeController extends GetxController {
     final res = await _api.post(ApiConstants.blogs, data: {'limit': 5});
     if (ApiService.isSuccess(res)) {
       blogs.value = List.from(ApiService.getData(res)?['docs'] ?? []);
+    }
+  }
+
+  Future<void> _fetchVideos() async {
+    final res = await _api.get(ApiConstants.videos);
+    if (ApiService.isSuccess(res)) {
+      final data = ApiService.getData(res);
+      videos.value = List.from(data is List ? data : (data?['docs'] ?? []));
     }
   }
 
@@ -244,12 +344,14 @@ class HomeController extends GetxController {
       final personal = target['personal_details'];
       final skillDetails = target['skill_details'];
 
-      // Name & profile
-      normalized.putIfAbsent('name', () => personal is Map ? personal['name'] : null);
-      normalized.putIfAbsent(
-        'profilePic',
-        () => personal is Map ? personal['profile_image'] : null,
-      );
+      // Name & profile extraction
+      normalized['name'] = AstrologerUtils.getLocalizedAstrologerName(target);
+
+      String? extractedPic = target['profilePic']?.toString() ?? target['profile_pic']?.toString() ?? target['profile_image']?.toString();
+      if ((extractedPic == null || extractedPic.isEmpty) && personal is Map) {
+        extractedPic = personal['profile_image']?.toString() ?? personal['profile_pic']?.toString();
+      }
+      normalized['profilePic'] = extractedPic ?? '';
 
       // Skills / specialization – prefer names from skill_details
       final List<String> skills = [];

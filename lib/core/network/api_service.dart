@@ -36,6 +36,9 @@ class ApiService {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          final langCode = prefs.getString(AppConstants.keyLanguage) ?? 'en';
+          options.headers['Accept-Language'] = langCode;
+
           _logRequest(options);
           handler.next(options);
         },
@@ -209,14 +212,32 @@ class ApiService {
 
   // ── Helper: check success ────────────────────────────────
   static bool isSuccess(Map<String, dynamic>? response) {
-    return response != null && response['IsSuccess'] == true;
+    if (response == null) return false;
+    if (response['IsSuccess'] == false || response['isSuccess'] == false || response['status'] == false || response['success'] == false) {
+      return false;
+    }
+    return response['IsSuccess'] == true ||
+        response['isSuccess'] == true ||
+        response['status'] == true ||
+        response['status'] == 200 ||
+        response['statusCode'] == 200 ||
+        response['success'] == true ||
+        response.containsKey('Data') ||
+        response.containsKey('data') ||
+        response.containsKey('boy') ||
+        response.containsKey('varna') ||
+        response.containsKey('score') ||
+        response.containsKey('total_points');
   }
 
   static dynamic getData(Map<String, dynamic>? response) {
-    return response?['Data'];
+    if (response == null) return null;
+    if (response.containsKey('Data') && response['Data'] != null) return response['Data'];
+    if (response.containsKey('data') && response['data'] != null) return response['data'];
+    return response;
   }
 
   static String getMessage(Map<String, dynamic>? response) {
-    return response?['Message'] ?? 'Something went wrong';
+    return response?['Message'] ?? response?['message'] ?? response?['msg'] ?? response?['error'] ?? 'Something went wrong';
   }
 }

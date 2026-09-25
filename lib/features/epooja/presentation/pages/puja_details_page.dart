@@ -328,8 +328,9 @@ class _PujaDetailsPageState extends State<PujaDetailsPage> with SingleTickerProv
   }
 
   Widget _buildStickyFooter() {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Positioned(
-      bottom: 20.h,
+      bottom: bottomInset + 16.h,
       left: 20.w,
       right: 20.w,
       child: ElevatedButton(

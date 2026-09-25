@@ -13,28 +13,37 @@ class SnackbarUtil {
   }) {
     final config = _getConfig(type);
 
-    Get.rawSnackbar(
-      title: title ?? config.title,
-      message: message,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: config.backgroundColor,
-      icon: Icon(config.icon, color: Colors.white, size: 28),
-      borderRadius: 12,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      duration: duration,
-      isDismissible: true,
-      dismissDirection: DismissDirection.horizontal,
-      forwardAnimationCurve: Curves.easeOutBack,
-      boxShadows: [
-        BoxShadow(
-          color: config.backgroundColor.withOpacity(0.3),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-      snackStyle: SnackStyle.FLOATING,
-    );
+    if (Get.overlayContext == null && Get.context == null) {
+      debugPrint('[SnackbarUtil] Overlay context is null. Suppressing snackbar: $message');
+      return;
+    }
+
+    try {
+      Get.rawSnackbar(
+        title: title ?? config.title,
+        message: message,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: config.backgroundColor,
+        icon: Icon(config.icon, color: Colors.white, size: 28),
+        borderRadius: 12,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        duration: duration,
+        isDismissible: true,
+        dismissDirection: DismissDirection.horizontal,
+        forwardAnimationCurve: Curves.easeOutBack,
+        boxShadows: [
+          BoxShadow(
+            color: config.backgroundColor.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        snackStyle: SnackStyle.FLOATING,
+      );
+    } catch (e, s) {
+      debugPrint('[SnackbarUtil] Error showing snackbar: $e\n$s');
+    }
   }
 
   static void success(String message, {String? title}) {

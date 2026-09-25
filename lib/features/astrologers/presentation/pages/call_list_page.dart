@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/utils/gujarati_script_utils.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,17 +14,7 @@ class CallListPage extends GetView<CallHistoryController> {
   const CallListPage({super.key});
 
   String _astrologerName(Map<String, dynamic> session) {
-    final astrologer = session['astrologer_id'];
-    if (astrologer is Map) {
-      final personal = astrologer['personal_details'];
-      if (personal is Map && personal['name'] != null) {
-        return personal['name'].toString();
-      }
-      if (astrologer['name'] != null) {
-        return astrologer['name'].toString();
-      }
-    }
-    return 'Astrologer';
+    return AstrologerUtils.getLocalizedAstrologerName(session);
   }
 
   String? _astrologerImage(Map<String, dynamic> session) {

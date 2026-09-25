@@ -16,7 +16,7 @@ class BlogsPage extends GetView<BlogController> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Astrology Daily'),
+        title: Text('latest_blog'.tr),
         elevation: 0,
       ),
       body: Obx(() {
@@ -31,7 +31,7 @@ class BlogsPage extends GetView<BlogController> {
               children: [
                 Icon(Icons.article_outlined, size: 64.sp, color: AppColors.textHint),
                 SizedBox(height: 16.h),
-                const Text('No blogs found'),
+                Text('no_data_found'.tr),
               ],
             ),
           );

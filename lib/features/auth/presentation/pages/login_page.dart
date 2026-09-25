@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
+import '../../../../config/routes/app_routes.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginPage extends GetView<AuthController> {
@@ -33,8 +34,6 @@ class LoginPage extends GetView<AuthController> {
                 ),
               ),
               Positioned(
-                // right: 50.w,
-                // top: 68.h,
                 child: Text(
                   'ॐ',
                   style: AppTextStyles.displayLarge.copyWith(
@@ -43,81 +42,87 @@ class LoginPage extends GetView<AuthController> {
                   ),
                 ),
               ),
-              Column(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: ZoomIn(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 28.w),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 28.w,
-                                vertical: 20.h,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: AppColors.sacredGradient,
-                                borderRadius: BorderRadius.circular(28.r),
-                                boxShadow: AppColors.luxuryShadow,
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    size: 42.sp,
-                                    color: AppColors.secondaryLight,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  Text(
-                                    'Vedikvani Wellness',
-                                    style: AppTextStyles.displayMedium.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 34.sp,
+              // Wrap everything in SingleChildScrollView to prevent overflow
+              SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.top,
+                  ),
+                  child: Column(
+                    children: [
+                      // Top banner section
+                      ZoomIn(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 28.w, vertical: 32.h),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 28.w,
+                                  vertical: 20.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.sacredGradient,
+                                  borderRadius: BorderRadius.circular(28.r),
+                                  boxShadow: AppColors.luxuryShadow,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.auto_awesome,
+                                      size: 42.sp,
+                                      color: AppColors.secondaryLight,
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(height: 12.h),
+                                    Text(
+                                      'Vedikvani Wellness',
+                                      style:
+                                          AppTextStyles.displayMedium.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 34.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 20.h),
-                            Text(
-                              'welcome_back'.tr,
-                              style: AppTextStyles.h2.copyWith(
-                                color: AppColors.textPrimary,
+                              SizedBox(height: 20.h),
+                              Text(
+                                'welcome_back'.tr,
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              'login_desc'.tr,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary,
-                                letterSpacing: 0.2,
+                              SizedBox(height: 8.h),
+                              Text(
+                                'login_desc'.tr,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                  letterSpacing: 0.2,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: FadeInUp(
-                      duration: const Duration(milliseconds: 800),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.fromLTRB(24.w, 40.h, 24.w, 0),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(40.r),
+                      // Bottom card section
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 800),
+                        child: Container(
+                          width: double.infinity,
+                          padding:
+                              EdgeInsets.fromLTRB(24.w, 40.h, 24.w, 48.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(40.r),
+                            ),
+                            boxShadow: AppColors.luxuryShadow,
                           ),
-                          boxShadow: AppColors.luxuryShadow,
-                        ),
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -135,7 +140,6 @@ class LoginPage extends GetView<AuthController> {
                                 ),
                               ),
                               SizedBox(height: 40.h),
-
                               PremiumCard(
                                 padding: EdgeInsets.zero,
                                 borderRadius: 18,
@@ -146,9 +150,7 @@ class LoginPage extends GetView<AuthController> {
                                   keyboardType: TextInputType.phone,
                                 ),
                               ),
-
                               SizedBox(height: 32.h),
-
                               Obx(
                                 () => CustomButton(
                                   text: 'send_otp'.tr,
@@ -158,9 +160,7 @@ class LoginPage extends GetView<AuthController> {
                                   borderRadius: 18,
                                 ),
                               ),
-
                               SizedBox(height: 32.h),
-
                               Center(
                                 child: Wrap(
                                   alignment: WrapAlignment.center,
@@ -172,7 +172,7 @@ class LoginPage extends GetView<AuthController> {
                                       ),
                                     ),
                                     GestureDetector(
-                                      onTap: () {},
+                                      onTap: () => Get.toNamed(AppRoutes.terms),
                                       child: Text(
                                         'terms_conditions'.tr,
                                         style: AppTextStyles.caption.copyWith(
@@ -184,14 +184,13 @@ class LoginPage extends GetView<AuthController> {
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 100.h),
                             ],
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ],
           ),

@@ -197,8 +197,11 @@ class PujaOrderRequest {
   Map<String, dynamic> toJson() {
     return {
       'pujaId': pujaId,
+      'puja_id': pujaId,
       'packageId': packageId,
+      'package_id': packageId,
       'astrologerId': astrologerId,
+      'astrologer_id': astrologerId,
       'booking_date': bookingDate,
       'mode': mode,
       'payment_method': paymentMethod,

@@ -22,20 +22,23 @@ import '../../features/profile/presentation/pages/order_history_page.dart';
 import '../../features/profile/presentation/pages/transactions_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/profile/presentation/pages/help_support_page.dart';
-// TEMPORARILY HIDDEN FOR APP STORE REVIEW (Apple Guideline 4.3 — saturated category)
-// Restore these imports in the next update after approval:
-// import '../../features/services/presentation/pages/kundli_page.dart';
-// import '../../features/services/presentation/pages/horoscope_page.dart';
-// import '../../features/services/presentation/pages/horoscope_detail_page.dart';
-// import '../../features/services/presentation/pages/panchang_page.dart';
-// import '../../features/services/presentation/pages/matchmaking_page.dart';
-// import '../../features/services/presentation/controllers/service_controller.dart';
-// import '../../features/services/presentation/controllers/kundli_controller.dart';
-// import '../../features/services/presentation/controllers/matchmaking_controller.dart';
+import '../../features/profile/presentation/pages/terms_page.dart';
+import '../../features/profile/presentation/pages/privacy_policy_page.dart';
+import '../../features/services/presentation/pages/kundli_page.dart';
+import '../../features/services/presentation/pages/horoscope_page.dart';
+import '../../features/services/presentation/pages/horoscope_detail_page.dart';
+import '../../features/services/presentation/pages/panchang_page.dart';
+import '../../features/services/presentation/pages/matchmaking_page.dart';
+import '../../features/services/presentation/controllers/service_controller.dart';
+import '../../features/services/presentation/controllers/kundli_controller.dart';
+import '../../features/services/presentation/controllers/matchmaking_controller.dart';
 import '../../features/shop/presentation/pages/shop_page.dart';
 import '../../features/shop/presentation/pages/product_detail_page.dart';
 import '../../features/shop/presentation/pages/cart_page.dart';
 import '../../features/epooja/presentation/pages/epooja_page.dart';
+import '../../features/epooja/presentation/pages/puja_details_page.dart';
+import '../../features/epooja/presentation/pages/select_astrologer_page.dart';
+import '../../features/epooja/presentation/pages/puja_checkout_page.dart';
 import '../../features/astrologers/presentation/pages/call_list_page.dart';
 import '../../features/astrologers/presentation/pages/chat_list_page.dart';
 import '../../features/astrologers/presentation/pages/live_list_page.dart';
@@ -180,45 +183,43 @@ class AppPages {
     //   name: AppRoutes.savedAstrologers,
     //   page: () => const SavedAstrologersPage(),
     // ),
-    // TEMPORARILY HIDDEN FOR APP STORE REVIEW (Apple Guideline 4.3 — saturated category)
-    // Restore these routes in the next update after approval:
-    // GetPage(
-    //   name: AppRoutes.kundli,
-    //   page: () => KundliPage(),
-    //   binding: BindingsBuilder(() {
-    //     Get.put<KundliController>(KundliController());
-    //   }),
-    // ),
-    // GetPage(
-    //   name: AppRoutes.horoscope,
-    //   page: () => const HoroscopePage(),
-    //   binding: BindingsBuilder(() {
-    //     Get.put<ServiceController>(ServiceController());
-    //   }),
-    // ),
-    // GetPage(
-    //   name: AppRoutes.horoscopeDetail,
-    //   page: () => const HoroscopeDetailPage(),
-    //   binding: BindingsBuilder(() {
-    //     if (!Get.isRegistered<ServiceController>()) {
-    //       Get.put<ServiceController>(ServiceController());
-    //     }
-    //   }),
-    // ),
-    // GetPage(
-    //   name: AppRoutes.panchang,
-    //   page: () => const PanchangPage(),
-    //   binding: BindingsBuilder(() {
-    //     Get.put<ServiceController>(ServiceController());
-    //   }),
-    // ),
-    // GetPage(
-    //   name: AppRoutes.matchmaking,
-    //   page: () => const MatchmakingPage(),
-    //   binding: BindingsBuilder(() {
-    //     Get.put<MatchmakingController>(MatchmakingController());
-    //   }),
-    // ),
+    GetPage(
+      name: AppRoutes.kundli,
+      page: () => KundliPage(),
+      binding: BindingsBuilder(() {
+        Get.put<KundliController>(KundliController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.horoscope,
+      page: () => const HoroscopePage(),
+      binding: BindingsBuilder(() {
+        Get.put<ServiceController>(ServiceController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.horoscopeDetail,
+      page: () => const HoroscopeDetailPage(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<ServiceController>()) {
+          Get.put<ServiceController>(ServiceController());
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.panchang,
+      page: () => const PanchangPage(),
+      binding: BindingsBuilder(() {
+        Get.put<ServiceController>(ServiceController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.matchmaking,
+      page: () => const MatchmakingPage(),
+      binding: BindingsBuilder(() {
+        Get.put<MatchmakingController>(MatchmakingController());
+      }),
+    ),
     GetPage(
       name: AppRoutes.shop,
       page: () => const ShopPage(),
@@ -236,6 +237,47 @@ class AppPages {
       page: () => const EPoojaPage(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => PujaController());
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.pujaDetails,
+      page: () => PujaDetailsPage(pujaId: Get.arguments ?? ''),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<PujaController>()) {
+          Get.lazyPut(() => PujaController());
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.selectPujaAstrologer,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        return SelectAstrologerPage(
+          puja: args['puja'],
+          package: args['package'],
+        );
+      },
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<AstrologerController>()) {
+          Get.lazyPut(() => AstrologerController());
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.pujaCheckout,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        return PujaCheckoutPage(
+          puja: args['puja'],
+          package: args['package'],
+          astrologer: args['astrologer'],
+          mode: args['mode'] ?? 'online',
+        );
+      },
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<PujaController>()) {
+          Get.lazyPut(() => PujaController());
+        }
       }),
     ),
     GetPage(
@@ -317,10 +359,23 @@ class AppPages {
         Get.put<CallController>(CallController());
       }),
     ),
-    GetPage(name: AppRoutes.pujaHistory, page: () => const PujaHistoryPage()),
+    GetPage(
+      name: AppRoutes.pujaHistory,
+      page: () => const PujaHistoryPage(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<PujaController>()) {
+          Get.lazyPut(() => PujaController());
+        }
+      }),
+    ),
     GetPage(
       name: AppRoutes.pujaHistoryDetail,
       page: () => PujaHistoryDetailPage(order: Get.arguments),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<PujaController>()) {
+          Get.lazyPut(() => PujaController());
+        }
+      }),
     ),
     GetPage(
       name: AppRoutes.notifications,
@@ -328,6 +383,14 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.put<NotificationController>(NotificationController());
       }),
+    ),
+    GetPage(
+      name: AppRoutes.terms,
+      page: () => const TermsPage(),
+    ),
+    GetPage(
+      name: AppRoutes.privacyPolicy,
+      page: () => const PrivacyPolicyPage(),
     ),
   ];
 }

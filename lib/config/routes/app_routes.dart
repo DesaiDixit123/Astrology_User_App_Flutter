@@ -52,12 +52,37 @@ class AppRoutes {
   static const String shopOrderDetail = '/shop-order-detail';
 
   static const String epooja = '/e-pooja';
+  static const String pujaDetails = '/puja-details';
+  static const String selectPujaAstrologer = '/select-puja-astrologer';
+  static const String pujaCheckout = '/puja-checkout';
   static const String pujaHistory = '/puja-history';
   static const String pujaHistoryDetail = '/puja-history-detail';
+
+  // Reports
+  static const String reports = '/reports';
+  static const String reportDetail = '/report-detail';
+  static const String buyReport = '/buy-report';
+  static const String myReports = '/my-reports';
+
+  // AI Chat
+  static const String aiChat = '/ai-chat';
+  static const String myAiChats = '/my-ai-chats';
+
+  // Following & Blocked Astrologers
+  static const String following = '/following';
+  static const String blockedAstrologers = '/blocked-astrologers';
+
+  // Support Tickets
+  static const String supportTicket = '/support-ticket';
+  static const String addSupportTicket = '/add-support-ticket';
 
   // Blogs
   static const String blogs = '/blogs';
   static const String blogDetail = '/blog-detail';
+
+  // Terms & Privacy Policy
+  static const String terms = '/terms';
+  static const String privacyPolicy = '/privacy-policy';
 
   // Calls
   static const String voiceCall = '/voice-call';

@@ -49,5 +49,7 @@
 	<string>Camera access may be required for live sessions and video calls.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access may be required for live sessions and calls.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

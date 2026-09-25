@@ -123,23 +123,32 @@ class WalletController extends GetxController {
   }
 
   void _openRazorpay(Map<String, dynamic> orderData) {
-    var options = {
-      'key': orderData['key'],
+    final keyId = orderData['key']?.toString() ?? orderData['key_id']?.toString() ?? AppConstants.razorpayKeyId;
+    final orderId = orderData['order_id']?.toString() ?? '';
+
+    final Map<String, dynamic> options = {
+      'key': keyId,
       'amount': orderData['amount'],
-      'name': 'Astrology App',
-      'order_id': orderData['order_id'],
+      'name': 'Vedikvani User',
       'description': 'Wallet Recharge',
-      'prefill': {'contact': _userPhone, 'email': _userEmail},
-      'external': {
-        'wallets': ['paytm'],
+      'prefill': {
+        'contact': _userPhone.isNotEmpty ? _userPhone : '9904755099',
+        'email': _userEmail.isNotEmpty ? _userEmail : 'admin@thekhushiempire.com',
       },
+      'theme': {'color': '#E65100'},
+      'retry': {'enabled': true, 'max_count': 1},
+      'send_sms_hash': true,
     };
+
+    if (orderId.isNotEmpty && !orderId.startsWith('order_sim_')) {
+      options['order_id'] = orderId;
+    }
 
     try {
       _razorpay.open(options);
     } catch (e) {
       debugPrint('Error: $e');
-      SnackbarUtil.error('Could not open payment gateway');
+      SnackbarUtil.error('Could not open payment gateway: $e');
     }
   }
 

@@ -184,6 +184,7 @@ class EditProfilePage extends GetView<ProfileController> {
                       onPressed: controller.updateProfile,
                       gradient: AppColors.primaryGradient,
                     ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 40.h),
                   ],
                 ),
               ),

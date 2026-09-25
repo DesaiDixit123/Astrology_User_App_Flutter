@@ -177,7 +177,14 @@ class HoroscopePage extends GetView<ServiceController> {
                   : const SizedBox.shrink(),
             ),
           ),
-          SliverToBoxAdapter(child: SizedBox(height: 24.h)),
+          SliverToBoxAdapter(
+            child: Builder(
+              builder: (context) {
+                final bottomPadding = MediaQuery.of(context).padding.bottom;
+                return SizedBox(height: 36.h + bottomPadding);
+              },
+            ),
+          ),
         ],
       ),
     );

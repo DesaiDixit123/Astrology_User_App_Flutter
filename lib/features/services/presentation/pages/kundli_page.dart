@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/services/pdf_export_service.dart';
 import '../controllers/kundli_controller.dart';
 
 class KundliPage extends GetView<KundliController> {
@@ -24,6 +25,7 @@ class KundliPage extends GetView<KundliController> {
         ),
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: 24.h + MediaQuery.of(context).padding.bottom),
         child: Column(
           children: [
             _buildHeaderMenu(),
@@ -50,17 +52,22 @@ class KundliPage extends GetView<KundliController> {
     return Container(
       color: Colors.white,
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildMenuTab('Free Janam Kundali', true),
-          SizedBox(width: 16.w),
-          _buildMenuTab(
-            'Kundali Matching',
-            false,
-            onTap: () => Get.offNamed('/matchmaking'),
-          ),
-        ],
+      width: double.infinity,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildMenuTab('free_janam_kundali'.tr, true),
+            SizedBox(width: 12.w),
+            _buildMenuTab(
+              'kundali_matching'.tr,
+              false,
+              onTap: () => Get.offNamed('/matchmaking'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -128,8 +135,8 @@ class KundliPage extends GetView<KundliController> {
                       children: [
                         Expanded(
                           child: _buildTextField(
-                            label: 'Name *',
-                            hint: 'Enter name',
+                            label: '${'full_name'.tr} *',
+                            hint: 'enter_your_name'.tr,
                             controller: controller.kundliNameController,
                             icon: Icons.person_outline,
                           ),
@@ -152,8 +159,8 @@ class KundliPage extends GetView<KundliController> {
                 return Column(
                   children: [
                     _buildTextField(
-                      label: 'Name *',
-                      hint: 'Enter name',
+                      label: '${'full_name'.tr} *',
+                      hint: 'enter_your_name'.tr,
                       controller: controller.kundliNameController,
                       icon: Icons.person_outline,
                     ),
@@ -170,8 +177,8 @@ class KundliPage extends GetView<KundliController> {
           ),
           SizedBox(height: 16.h),
           _buildPlaceAutocomplete(
-            label: 'Place of Birth *',
-            hint: 'Enter city',
+            label: '${'place_of_birth'.tr} *',
+            hint: 'city_hint'.tr,
             controller: controller.kundliPlaceController,
             onPlaceSelected: (lat, lon) {
               controller.lat = lat;
@@ -411,20 +418,57 @@ class KundliPage extends GetView<KundliController> {
             return await this.controller.searchPlaces(textEditingValue.text);
           },
           displayStringForOption: (option) => option['description'] as String,
-          onSelected: (option) async {
+          onSelected: (option) {
             controller.text = option['description'];
-            final details = await this.controller.getPlaceDetails(
-              option['place_id'],
-            );
-            if (details != null) {
-              onPlaceSelected(details['lat']!, details['lon']!);
+            if (option['lat'] != null && option['lon'] != null) {
+              onPlaceSelected(option['lat'].toString(), option['lon'].toString());
             }
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 6.0,
+                borderRadius: BorderRadius.circular(12.r),
+                color: Colors.white,
+                child: Container(
+                  width: MediaQuery.of(context).size.width - 64.w,
+                  constraints: BoxConstraints(maxHeight: 220.h),
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (c, i) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final option = options.elementAt(index);
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on, color: Colors.orange, size: 18),
+                        title: Text(
+                          option['description'] ?? '',
+                          style: AppTextStyles.bodySmall.copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
+                        ),
+                        onTap: () {
+                          onSelected(option);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
           },
           fieldViewBuilder:
               (context, textEditingController, focusNode, onFieldSubmitted) {
+                if (controller.text.isNotEmpty && textEditingController.text.isEmpty) {
+                  textEditingController.text = controller.text;
+                }
                 return TextField(
                   controller: textEditingController,
                   focusNode: focusNode,
+                  onChanged: (val) {
+                    controller.text = val;
+                  },
                   decoration: _inputDecoration(
                     hint,
                     icon: Icons.location_on_outlined,
@@ -477,24 +521,47 @@ class KundliPage extends GetView<KundliController> {
         'Report',
       ];
 
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      return Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: 16.h),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => PdfExportService().exportKundliPdf(
+                      Map<String, dynamic>.from(controller.kundliResult),
+                    ),
+                icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+                label: Text(
+                  'Download PDF Report',
+                  style: AppTextStyles.button.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5D3012),
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.r)),
+                ),
               ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                  ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -540,9 +607,11 @@ class KundliPage extends GetView<KundliController> {
             Padding(padding: EdgeInsets.all(24.w), child: _buildTabContent()),
           ],
         ),
-      );
-    });
-  }
+      ),
+    ],
+  );
+});
+}
 
   Widget _buildTabContent() {
     return Obx(() {
@@ -644,6 +713,59 @@ class KundliPage extends GetView<KundliController> {
     {'label': 'DAY OF BIRTH', 'key': 'day_of_birth'},
   ];
 
+  String _getStructuredValue(String title, String key, Map<String, dynamic> data) {
+    dynamic rawVal = data[key];
+
+    if (title == 'BIRTH DETAILS') {
+      if (key == 'lat') {
+        rawVal = data['lat'] ?? controller.lat;
+      } else if (key == 'lon') {
+        rawVal = data['lon'] ?? data['lng'] ?? controller.lon;
+      } else if (key == 'tz') {
+        rawVal = data['tz'] ?? data['timezone'] ?? '5.5';
+      } else if (key == 'rasi') {
+        rawVal = data['rasi'] ?? data['rashi'] ?? data['zodiac'] ?? controller.kundliResult['extra']?['rasi'];
+        if (rawVal == null || rawVal.toString().isEmpty) {
+          final planets = controller.kundliResult['planets'] as List? ?? [];
+          if (planets.isNotEmpty) {
+            final moon = planets.firstWhere((p) => p['name'] == 'Moon' || p['name'] == 'Sun', orElse: () => planets.first);
+            rawVal = moon['rashi'] ?? moon['zodiac'];
+          }
+        }
+      } else if (key == 'name') {
+        rawVal = data['name'] ?? controller.kundliNameController.text;
+      } else if (key == 'dob') {
+        rawVal = data['dob'] ?? controller.kundliDobController.text;
+      } else if (key == 'tob') {
+        rawVal = data['tob'] ?? controller.kundliTobController.text;
+      } else if (key == 'place') {
+        rawVal = data['place'] ?? controller.kundliPlaceController.text;
+      }
+    }
+
+    if (rawVal == null) return 'N/A';
+
+    if (rawVal is Map) {
+      final name = rawVal['name']?.toString() ?? rawVal['details']?.toString() ?? '';
+      final type = rawVal['type']?.toString() ?? '';
+      if (name.isNotEmpty && type.isNotEmpty) {
+        return '$name ($type)';
+      } else if (name.isNotEmpty) {
+        return name;
+      }
+      final cleanParts = <String>[];
+      rawVal.forEach((k, v) {
+        if (k != 'meaning' && k != 'special' && k != 'diety' && v != null && v.toString().isNotEmpty) {
+          cleanParts.add('$k: $v');
+        }
+      });
+      return cleanParts.isNotEmpty ? cleanParts.join(', ') : 'N/A';
+    }
+
+    final str = rawVal.toString().trim();
+    return str.isNotEmpty ? str : 'N/A';
+  }
+
   Widget _buildCardList(
     String title,
     Map<String, dynamic> data,
@@ -681,7 +803,7 @@ class KundliPage extends GetView<KundliController> {
               children: [
                 _buildDetailRow(
                   item['label'],
-                  data[item['key']]?.toString() ?? 'N/A',
+                  _getStructuredValue(title, item['key'], data),
                   isLink: item['isLink'] == true,
                 ),
                 if (!isLast)

@@ -1,3 +1,4 @@
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -65,7 +66,7 @@ class ChatPage extends GetView<ChatController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    controller.partner['name'] ?? 'Astrologer',
+                    GujaratiScriptUtils.toGujaratiName(controller.partner['name']?.toString() ?? 'astrologer'.tr),
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,

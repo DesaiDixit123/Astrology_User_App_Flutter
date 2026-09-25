@@ -6,6 +6,9 @@ import 'package:astrology_user/shared/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../../core/utils/gujarati_script_utils.dart';
+import '../../../../core/utils/name_transliteration_utils.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../dashboard/presentation/controllers/dashboard_controller.dart';
@@ -41,6 +44,10 @@ class HomePage extends GetView<HomeController> {
                     FadeInUp(child: _buildBannerSection()),
                     _buildFreeChatBanner(),
                     _buildServicesSection(),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 300),
+                      child: _buildAnalyzeKundaliCard(),
+                    ),
                     if (controller.liveAstrologers.isNotEmpty)
                       FadeInUp(
                         delay: const Duration(milliseconds: 400),
@@ -48,14 +55,21 @@ class HomePage extends GetView<HomeController> {
                       ),
                     if (controller.topAstrologers.isNotEmpty)
                       FadeInUp(
-                        delay: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 500),
                         child: _buildTopAstrologersSection(),
                       ),
-                    if (controller.blogs.isNotEmpty)
-                      FadeInUp(
-                        delay: const Duration(milliseconds: 800),
-                        child: _buildBlogsSection(),
-                      ),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 600),
+                      child: _buildBlogsSection(),
+                    ),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 800),
+                      child: _buildWhatIsAstrologySection(),
+                    ),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 900),
+                      child: _buildAstrologyFaqsSection(),
+                    ),
                     SizedBox(height: 120.h),
                   ],
                 ),
@@ -87,7 +101,7 @@ class HomePage extends GetView<HomeController> {
             ),
             SizedBox(width: 8.w),
             Text(
-              'Vedikvani',
+              'vedikvani_app_name'.tr,
               style: AppTextStyles.displayMedium.copyWith(
                 color: Colors.white,
                 fontSize: 24.sp,
@@ -180,8 +194,8 @@ class HomePage extends GetView<HomeController> {
               },
               itemBuilder: (context, index) {
                 final banner = controller.banners[index];
-                final isAsset = banner['isAsset'] == true;
                 final imagePath = banner['image'];
+                final isAsset = banner['isAsset'] == true || (imagePath != null && imagePath.toString().startsWith('assets/'));
 
                 return Obx(() {
                   double scale = controller.currentBannerIndex.value == index
@@ -311,21 +325,42 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildServicesSection() {
-    // NOTE: Kundli, Horoscope, Matchmaking and Panchang are temporarily hidden
-    // for App Store review (Apple Guideline 4.3 — saturated category).
-    // They will be restored in the next update after approval.
     final services = [
+      {
+        'icon': Icons.grid_on_rounded,
+        'label': 'kundli_title'.tr,
+        'route': AppRoutes.kundli,
+        'color': [const Color(0xFFD97706), const Color(0xFFF59E0B)],
+      },
+      {
+        'icon': Icons.favorite_rounded,
+        'label': 'matchmaking_title'.tr,
+        'route': AppRoutes.matchmaking,
+        'color': [const Color(0xFFDC2626), const Color(0xFFEF4444)],
+      },
+      {
+        'icon': Icons.calendar_month_rounded,
+        'label': 'panchang_title'.tr,
+        'route': AppRoutes.panchang,
+        'color': [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)],
+      },
+      {
+        'icon': Icons.stars_rounded,
+        'label': 'horoscope_title'.tr,
+        'route': AppRoutes.horoscope,
+        'color': [const Color(0xFF2563EB), const Color(0xFF3B82F6)],
+      },
+      {
+        'icon': Icons.temple_hindu,
+        'label': 'e_pooja_title'.tr,
+        'route': AppRoutes.epooja,
+        'color': [const Color(0xFF8A251B), const Color(0xFFB73716)],
+      },
       {
         'icon': Icons.shopping_bag_outlined,
         'label': 'e_shop_title'.tr,
         'route': AppRoutes.shop,
         'color': [const Color(0xFF6E4A22), const Color(0xFFC89647)],
-      },
-      {
-        'icon': Icons.temple_hindu,
-        'label': 'e_pooja_title'.tr,
-        'route': '/e-pooja',
-        'color': [const Color(0xFF8A251B), const Color(0xFFB73716)],
       },
     ];
 
@@ -335,7 +370,7 @@ class HomePage extends GetView<HomeController> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Our Services',
+            'our_services'.tr,
             style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800),
           ),
 
@@ -540,7 +575,7 @@ class HomePage extends GetView<HomeController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      GujaratiScriptUtils.toGujaratiName(name),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -549,7 +584,7 @@ class HomePage extends GetView<HomeController> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Live now',
+                      'live_now'.tr,
                       style: AppTextStyles.caption.copyWith(
                         color: Colors.white70,
                         fontSize: 9.sp,
@@ -600,8 +635,7 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildAstrologerRow(Map<String, dynamic> astro) {
-    final name = astro['name']?.toString() ?? 'Astrologer';
-    final profilePic = astro['profilePic']?.toString() ?? '';
+    final profilePic = (astro['profilePic'] ?? astro['profile_pic'] ?? astro['profile_image'] ?? (astro['personal_details'] is Map ? astro['personal_details']['profile_image'] : ''))?.toString() ?? '';
     final rating = astro['rating'] ?? 5.0;
 
     return PremiumCard(
@@ -622,11 +656,15 @@ class HomePage extends GetView<HomeController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  AstrologerUtils.getLocalizedAstrologerName(astro),
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                SizedBox(height: 4.h),
                 Row(
                   children: [
                     Icon(Icons.star, color: AppColors.gold, size: 14.sp),
@@ -635,6 +673,7 @@ class HomePage extends GetView<HomeController> {
                       '$rating',
                       style: AppTextStyles.caption.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -659,98 +698,508 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
-  Widget _buildBlogsSection() {
-    if (controller.blogs.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+  Widget _buildAnalyzeKundaliCard() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7A4A1C).withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'astrology_insights'.tr,
-                style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800),
-              ),
-              TextButton(
-                onPressed: () => Get.toNamed(AppRoutes.blogs),
-                child: Text(
-                  'view_all'.tr,
-                  style: AppTextStyles.buttonSmall.copyWith(
-                    color: AppColors.primary,
+          Container(
+            width: 130.w,
+            height: 130.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFFFDF9),
+              border: Border.all(color: const Color(0xFFE8D4B1), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFD7A545).withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/kundali_sage_badge.jpg',
+                width: 130.w,
+                height: 130.w,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.primary, size: 40.sp),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'ANALYZE YOUR KUNDLI\nIN-DEPTH FOR FREE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 8.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-          SizedBox(height: 12.h),
-          SizedBox(
-            height: 220.h,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: controller.blogs.length,
-              itemBuilder: (context, index) {
-                final blog = controller.blogs[index];
-                final title = blog['title'] ?? 'Title';
-                final image = blog['image'] ?? '';
-                final imageUrl = ApiConstants.resolveImage(image);
-
-                return SizedBox(
-                  width: 260.w,
-                  child: PremiumCard(
-                    onTap: () =>
-                        Get.toNamed(AppRoutes.blogDetail, arguments: blog),
-                    margin: EdgeInsets.only(right: 16.w, bottom: 8.h),
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(24.r),
-                          ),
-                          child: Image.network(
-                            imageUrl,
-                            height: 130.h,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  height: 130.h,
-                                  width: double.infinity,
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  child: Icon(
-                                    Icons.image_not_supported_outlined,
-                                    color: AppColors.primary,
-                                    size: 30.sp,
-                                  ),
-                                ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(12.w),
-                          child: Text(
-                            title,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+          SizedBox(height: 20.h),
+          Text(
+            'analyze_your_kundali'.tr,
+            style: AppTextStyles.h3.copyWith(
+              color: const Color(0xFF1F110B),
+              fontWeight: FontWeight.w900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'analyze_kundali_desc'.tr,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20.h),
+          ElevatedButton(
+            onPressed: () => Get.toNamed(AppRoutes.kundli),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFAF6EE),
+              foregroundColor: AppColors.primary,
+              elevation: 0,
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.r),
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'experience_now'.tr,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
                   ),
-                );
-              },
+                ),
+                SizedBox(width: 6.w),
+                Icon(Icons.chevron_right, size: 18.sp, color: AppColors.primary),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildBlogsSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 16.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            'latest_blog'.tr,
+            'latest_blog_desc'.tr,
+          ),
+          SizedBox(height: 16.h),
+          SizedBox(
+            height: 250.h,
+            child: Obx(() {
+              final List blogList = controller.blogs.isNotEmpty
+                  ? controller.blogs.toList()
+                  : [
+                      {
+                        'title': Get.locale?.languageCode == 'gu'
+                            ? 'વૈદિક કુંડળી મિલાન માટેનું માર્ગદર્શન'
+                            : (Get.locale?.languageCode == 'hi'
+                                ? 'वैदिक कुंडली मिलान के लिए गाइड'
+                                : 'Guide to Vedic Kundali Matching'),
+                        'createdAt': '2026-03-17T00:00:00.000Z',
+                        'image': 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600',
+                      },
+                    ];
+
+              return ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                scrollDirection: Axis.horizontal,
+                itemCount: blogList.length,
+                itemBuilder: (context, index) {
+                  final blog = blogList[index];
+                  final title = blog['title'] ?? 'astrology_insights'.tr;
+                  final image = blog['image'] ?? '';
+                  final imageUrl = ApiConstants.resolveImage(image);
+                  String dateStr = 'Mar 17, 2026';
+                  if (blog['createdAt'] != null) {
+                    try {
+                      final dt = DateTime.parse(blog['createdAt']);
+                      dateStr = '${NameTransliterationUtils.toLocalizedNumber(dt.day)} ${_monthName(dt.month)}, ${NameTransliterationUtils.toLocalizedNumber(dt.year)}';
+                    } catch (_) {}
+                  }
+
+                  return Container(
+                    width: 240.w,
+                    margin: EdgeInsets.only(right: 16.w),
+                    child: PremiumCard(
+                      onTap: () => Get.toNamed(AppRoutes.blogDetail, arguments: blog),
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                                child: Image.network(
+                                  imageUrl.isNotEmpty ? imageUrl : 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600',
+                                  height: 130.h,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 130.h,
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    child: Icon(Icons.article_outlined, color: AppColors.primary, size: 36.sp),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 10.h,
+                                left: 10.w,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                  ),
+                                  child: Text(
+                                    dateStr,
+                                    style: TextStyle(
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF4A2411),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(12.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 10.h),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'read_more'.tr.toUpperCase(),
+                                      style: TextStyle(
+                                        color: const Color(0xFF8C4B1F),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11.sp,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4.w),
+                                    Icon(Icons.chevron_right, size: 14.sp, color: const Color(0xFF8C4B1F)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhatIsAstrologySection() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: const Color(0xFFE8D4B1).withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('what_is_astrology'.tr, null),
+          SizedBox(height: 16.h),
+          _buildTextSubheading('astrology_language_universe'.tr),
+          _buildTextParagraph(
+            'astrology_language_universe_desc'.tr,
+          ),
+          SizedBox(height: 16.h),
+          _buildTextSubheading('astrology_predictions_benefits'.tr),
+          _buildTextParagraph(
+            'astrology_predictions_benefits_desc'.tr,
+          ),
+          SizedBox(height: 16.h),
+          _buildTextSubheading('how_online_astrology_benefits'.tr),
+          _buildTextParagraph(
+            'how_online_astrology_benefits_desc'.tr,
+          ),
+          SizedBox(height: 20.h),
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _buildBenefitPill('benefit_hassle_free'.tr)),
+                  SizedBox(width: 10.w),
+                  Expanded(child: _buildBenefitPill('benefit_time_saving'.tr)),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Row(
+                children: [
+                  Expanded(child: _buildBenefitPill('benefit_privacy'.tr)),
+                  SizedBox(width: 10.w),
+                  Expanded(child: _buildBenefitPill('benefit_top_astrologers'.tr)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitPill(String text) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF6EE),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE8D4B1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 6.w,
+            height: 6.w,
+            margin: EdgeInsets.only(top: 5.h, right: 8.w),
+            decoration: const BoxDecoration(
+              color: Color(0xFF8C4B1F),
+              shape: BoxShape.circle,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF4A2411),
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAstrologyFaqsSection() {
+    final faqs = [
+      {
+        'q': 'faq_q1'.tr,
+        'a': 'faq_a1'.tr,
+      },
+      {
+        'q': 'faq_q2'.tr,
+        'a': 'faq_a2'.tr,
+      },
+      {
+        'q': 'faq_q3'.tr,
+        'a': 'faq_a3'.tr,
+      },
+      {
+        'q': 'faq_q4'.tr,
+        'a': 'faq_a4'.tr,
+      },
+      {
+        'q': 'faq_q5'.tr,
+        'a': 'faq_a5'.tr,
+      },
+    ];
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      child: Column(
+        children: [
+          _buildSectionHeader(
+            'faqs_related_to_astrology'.tr,
+            'faqs_subtitle'.tr,
+          ),
+          SizedBox(height: 16.h),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: faqs.length,
+            itemBuilder: (context, index) {
+              final faq = faqs[index];
+              return Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(color: const Color(0xFFE8D4B1).withValues(alpha: 0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                    childrenPadding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                    title: Text(
+                      faq['q']!,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1F110B),
+                      ),
+                    ),
+                    children: [
+                      Text(
+                        faq['a']!,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: const Color(0x99000000),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String? subtitle) {
+    return Column(
+      children: [
+        Center(
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1F110B),
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 6.h),
+              Container(
+                width: 60.w,
+                height: 3.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8C4B1F),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (subtitle != null) ...[
+          SizedBox(height: 10.h),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Colors.grey.shade700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTextSubheading(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.bold,
+        color: const Color(0xFF1F110B),
+      ),
+    );
+  }
+
+  Widget _buildTextParagraph(String text) {
+    return Padding(
+      padding: EdgeInsets.only(top: 6.h),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.sp,
+          color: Colors.black87,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+
+  String _monthName(int month) {
+    final lang = Get.locale?.languageCode ?? 'en';
+    if (lang == 'gu') {
+      const months = ['જાન્યુ', 'ફેબ્રુ', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટે', 'ઓક્ટો', 'નવે', 'ડિસે'];
+      return months[(month - 1) % 12];
+    } else if (lang == 'hi') {
+      const months = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+      return months[(month - 1) % 12];
+    }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[(month - 1) % 12];
   }
 
   Widget _buildFreeChatBanner() {
@@ -804,7 +1253,7 @@ class HomePage extends GetView<HomeController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Special Offer: ${controller.freeChatDurationMinutes.value} Min Free Chat!',
+                      'special_offer_free_chat'.tr.replaceAll('%s', NameTransliterationUtils.toLocalizedNumber(controller.freeChatDurationMinutes.value)),
                       style: TextStyle(
                         color: const Color(0xFFE65100),
                         fontWeight: FontWeight.bold,
@@ -813,7 +1262,7 @@ class HomePage extends GetView<HomeController> {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      'Consult top astrologers for free. Offer ends soon!',
+                      'consult_top_astrologers_free'.tr,
                       style: TextStyle(
                         color: const Color(0xFFF57C00),
                         fontWeight: FontWeight.w600,
@@ -842,7 +1291,7 @@ class HomePage extends GetView<HomeController> {
                   padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
                 ),
                 child: Text(
-                  'Chat Now',
+                  'chat_now'.tr,
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.bold,

@@ -5,6 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:astrology_user/core/constants/api_constants.dart';
+import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
+import 'package:astrology_user/core/utils/astrologer_utils.dart';
 import 'package:astrology_user/features/astrologers/presentation/controllers/astrologer_controller.dart';
 import 'package:astrology_user/features/calls/presentation/controllers/call_controller.dart';
 import 'package:astrology_user/features/chat/presentation/controllers/chat_controller.dart';
@@ -82,7 +84,7 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
 
   // Helper to safely extract values from the API response
   String? _id(Map a) => (a['_id'] ?? a['id'])?.toString();
-  String _name(Map a) => a['name'] as String? ?? 'Astrologer';
+  String _name(Map a) => AstrologerUtils.getLocalizedAstrologerName(a);
   String _specialization(Map a) {
     final skills = a['skills'];
     if (skills is List && skills.isNotEmpty) return skills.first.toString();
@@ -114,7 +116,7 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
   num _chatPrice(Map a) => (a['chatPrice'] ?? _price(a)) as num;
   num _voicePrice(Map a) => (a['voicePrice'] ?? _price(a)) as num;
   num _videoPrice(Map a) => (a['videoPrice'] ?? _price(a)) as num;
-  String _bio(Map a) => a['bio'] as String? ?? 'no_description'.tr;
+  String _bio(Map a) => AstrologerUtils.getLocalizedAstrologerBio(a);
   String? _profilePic(Map a) =>
       (a['profilePic'] ?? a['profile_pic']) as String?;
   List<dynamic> _skills(Map a) {
@@ -484,20 +486,23 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
     final callEnabled = _isCallEnabled(astrologer);
     final videoCallEnabled = _isVideoCallEnabled(astrologer);
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Column(
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Chat Row
@@ -649,8 +654,9 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCallButton({
     required IconData icon,

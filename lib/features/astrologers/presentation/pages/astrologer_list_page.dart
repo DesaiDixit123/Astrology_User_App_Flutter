@@ -3,6 +3,8 @@ import 'package:astrology_user/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../../core/utils/gujarati_script_utils.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../controllers/astrologer_controller.dart';
@@ -109,16 +111,14 @@ class _AstrologerListPageState extends State<AstrologerListPage> {
   }
 
   Widget _buildFilterChips() {
-    final filters = [
-      {'label': 'all'.tr, 'value': ''},
-      {'label': 'online'.tr, 'value': 'online'},
-      {'label': 'chat'.tr, 'value': 'chat'},
-      {'label': 'call'.tr, 'value': 'call'},
-      {'label': 'video_call'.tr, 'value': 'video_call'},
-    ];
-
     return Obx(() {
-      // Accessing filterType.value to ensure Obx registers a dependency
+      final filters = [
+        {'label': 'all'.tr, 'value': ''},
+        {'label': 'online'.tr, 'value': 'online'},
+        {'label': 'chat'.tr, 'value': 'chat'},
+        {'label': 'call'.tr, 'value': 'call'},
+        {'label': 'video_call'.tr, 'value': 'video_call'},
+      ];
       final selectedValue = controller.filterType.value;
       return SizedBox(
         height: 50.h,
@@ -152,7 +152,7 @@ class _AstrologerListPageState extends State<AstrologerListPage> {
 
   Widget _buildAstrologerCard(Map astrologer) {
     // Null-safe helpers for real API fields
-    final name = astrologer['name'] as String? ?? 'Astrologer';
+    final name = AstrologerUtils.getLocalizedAstrologerName(astrologer);
     // Specialization fallback
     final skills = astrologer['skills'];
     final specialization = (skills is List && skills.isNotEmpty)
@@ -226,10 +226,13 @@ class _AstrologerListPageState extends State<AstrologerListPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    AstrologerUtils.getLocalizedAstrologerName(astrologer),
                     style: AppTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 4.h),
                   Text(

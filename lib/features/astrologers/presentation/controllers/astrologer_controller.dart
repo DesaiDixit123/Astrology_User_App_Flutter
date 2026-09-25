@@ -4,6 +4,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/utils/snackbar_util.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 
 class AstrologerController extends GetxController {
   final RxList astrologers = [].obs;
@@ -327,7 +328,7 @@ class AstrologerController extends GetxController {
     final skillDetails = raw['skill_details'];
 
     // Basic identity
-    normalized['name'] ??= personal is Map ? personal['name'] : null;
+    normalized['name'] = AstrologerUtils.getLocalizedAstrologerName(raw);
     normalized['profilePic'] ??= personal is Map ? personal['profile_image'] : null;
 
     // Skills / specialization – prefer names from skill_details

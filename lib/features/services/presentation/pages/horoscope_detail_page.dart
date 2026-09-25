@@ -73,7 +73,12 @@ class _HoroscopeDetailPageState extends State<HoroscopeDetailPage> {
     ]);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.fromLTRB(
+        16.w,
+        16.h,
+        16.w,
+        24.h + MediaQuery.of(context).padding.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -319,13 +324,15 @@ class _HoroscopeDetailPageState extends State<HoroscopeDetailPage> {
   }
 
   String _typeLabel(String type) {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case 'weekly':
-        return 'Weekly';
+        return 'weekly'.tr;
+      case 'monthly':
+        return 'monthly'.tr;
       case 'yearly':
-        return 'Yearly';
+        return 'yearly'.tr;
       default:
-        return 'Daily';
+        return 'daily'.tr;
     }
   }
 

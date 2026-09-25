@@ -82,7 +82,7 @@ class _PanchangPageState extends State<PanchangPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFDF8EE), // Pale cream background matching image
       appBar: AppBar(
-        title: const Text('Panchang'),
+        title: Text('panchang_title'.tr),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -98,12 +98,12 @@ class _PanchangPageState extends State<PanchangPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Failed to load Panchang'),
+                Text('something_went_wrong'.tr),
                 SizedBox(height: 16.h),
                 ElevatedButton(
                   onPressed: () => _fetchPanchangForSelectedDate(),
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5C2D16)),
-                  child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                  child: Text('retry'.tr, style: const TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -126,6 +126,7 @@ class _PanchangPageState extends State<PanchangPage> {
         final samvat = p['samvat'] ?? 'N/A';
 
         return SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: 24.h + MediaQuery.of(context).padding.bottom),
           child: Column(
             children: [
               Container(
@@ -163,13 +164,13 @@ class _PanchangPageState extends State<PanchangPage> {
                       ),
                       child: Row(
                         children: [
-                          _buildToggleBtn('TODAY', _selectedType == 'today', () {
+                          _buildToggleBtn('today'.tr.toUpperCase(), _selectedType == 'today', () {
                              setState(() {
                                _selectedDate = DateTime.now();
                              });
                              _fetchPanchangForSelectedDate();
                           }),
-                          _buildToggleBtn('TOMORROW', _selectedType == 'tomorrow', () {
+                          _buildToggleBtn('tomorrow'.tr.toUpperCase(), _selectedType == 'tomorrow', () {
                              setState(() {
                                _selectedDate = DateTime.now().add(const Duration(days: 1));
                              });
@@ -186,26 +187,26 @@ class _PanchangPageState extends State<PanchangPage> {
                 child: Column(
                   children: [
                     _buildPanchangCard(
-                      'PANCHANG DETAILS',
+                      'panchang_title'.tr.toUpperCase(),
                       [
-                        _buildRowItem('TITHI', tithi.toString()),
-                        _buildRowItem('NAKSHATRA', nakshatra.toString()),
-                        _buildRowItem('YOGA', yoga.toString()),
-                        _buildRowItem('KARANA', karana.toString()),
-                        _buildRowItem('RASI', rasi.toString()),
+                        _buildRowItem('tithi'.tr.toUpperCase(), tithi.toString()),
+                        _buildRowItem('nakshatra'.tr.toUpperCase(), nakshatra.toString()),
+                        _buildRowItem('yoga'.tr.toUpperCase(), yoga.toString()),
+                        _buildRowItem('karana'.tr.toUpperCase(), karana.toString()),
+                        _buildRowItem('rasi'.tr.toUpperCase(), rasi.toString()),
                       ],
                     ),
                     SizedBox(height: 24.h),
                     _buildPanchangCard(
-                      'ADDITIONAL INFO',
+                      'additional_info'.tr.toUpperCase(),
                       [
-                        _buildRowWithIcon('SUNRISE', sunrise.toString(), Icons.wb_sunny_outlined, Colors.orange),
-                        _buildRowWithIcon('SUNSET', sunset.toString(), Icons.brightness_6_outlined, Colors.red),
-                        _buildRowWithIcon('MOONRISE', moonrise.toString(), Icons.nightlight_round, Colors.indigo),
-                        _buildRowWithIcon('MOONSET', moonset.toString(), Icons.brightness_3, Colors.blueGrey),
-                        _buildRowWithIcon('AMANTA MONTH', amantaMonth.toString(), Icons.calendar_month_outlined, Colors.purple),
-                        _buildRowWithIcon('PAKSHA', paksha.toString(), Icons.incomplete_circle, Colors.blue),
-                        _buildRowWithIcon('SAMVAT', samvat.toString(), Icons.star_border, Colors.pink),
+                        _buildRowWithIcon('sunrise'.tr.toUpperCase(), sunrise.toString(), Icons.wb_sunny_outlined, Colors.orange),
+                        _buildRowWithIcon('sunset'.tr.toUpperCase(), sunset.toString(), Icons.brightness_6_outlined, Colors.red),
+                        _buildRowWithIcon('moonrise'.tr.toUpperCase(), moonrise.toString(), Icons.nightlight_round, Colors.indigo),
+                        _buildRowWithIcon('moonset'.tr.toUpperCase(), moonset.toString(), Icons.brightness_3, Colors.blueGrey),
+                        _buildRowWithIcon('amanta_month'.tr.toUpperCase(), amantaMonth.toString(), Icons.calendar_month_outlined, Colors.purple),
+                        _buildRowWithIcon('paksha'.tr.toUpperCase(), paksha.toString(), Icons.incomplete_circle, Colors.blue),
+                        _buildRowWithIcon('samvat'.tr.toUpperCase(), samvat.toString(), Icons.star_border, Colors.pink),
                       ],
                     ),
                     SizedBox(height: 32.h),

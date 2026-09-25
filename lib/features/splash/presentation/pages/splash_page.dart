@@ -47,6 +47,12 @@ class SplashPage extends GetView<SplashController> {
                         width: 120.w,
                         height: 120.w,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 120.w,
+                          height: 120.w,
+                          color: AppColors.primary,
+                          child: Icon(Icons.auto_awesome, color: AppColors.gold, size: 60.sp),
+                        ),
                       ),
                     ),
                   ),
