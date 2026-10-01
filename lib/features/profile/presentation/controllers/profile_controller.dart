@@ -42,7 +42,27 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadCachedProfile();
     loadProfile();
+  }
+
+  Future<void> _loadCachedProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedName = prefs.getString(AppConstants.keyUserName) ?? '';
+      final cachedPhone = prefs.getString(AppConstants.keyUserPhone) ?? '';
+      final cachedEmail = prefs.getString(AppConstants.keyUserEmail) ?? '';
+      if (cachedName.isNotEmpty && (profile['name'] == null || profile['name'].toString().isEmpty)) {
+        profile['name'] = cachedName;
+        nameController.text = cachedName;
+      }
+      if (cachedPhone.isNotEmpty && phoneController.text.isEmpty) {
+        phoneController.text = cachedPhone;
+      }
+      if (cachedEmail.isNotEmpty && emailController.text.isEmpty) {
+        emailController.text = cachedEmail;
+      }
+    } catch (_) {}
   }
 
   @override
@@ -115,45 +135,55 @@ class ProfileController extends GetxController {
   }
 
   Future<void> updateProfile() async {
-    if (nameController.text.isEmpty) {
+    if (nameController.text.trim().isEmpty) {
       SnackbarUtil.error('Name is required');
       return;
     }
     isSaving.value = true;
-    
-    final Map<String, dynamic> data = {
-      'name': nameController.text.trim(),
-      'email': emailController.text.trim(),
-      'dob': dobController.text.trim(),
-      'gender': selectedGender.value,
-      'birth_time': birthTimeController.text.trim(),
-      'place_of_birth': birthPlaceController.text.trim(),
-      'marital_status': selectedMaritalStatus.value,
-      'occupation': occupationController.text.trim(),
-    };
+    try {
+      final genderVal = selectedGender.value.trim();
+      final maritalVal = selectedMaritalStatus.value.trim();
 
-    dynamic finalData;
-    if (imageFile.value != null) {
-      finalData = dio.FormData.fromMap({
-        ...data,
-        'profile_pic': await dio.MultipartFile.fromFile(imageFile.value!.path),
-      });
-    } else {
-      finalData = data;
-    }
+      final Map<String, dynamic> data = {
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'dob': dobController.text.trim(),
+        'gender': (genderVal.toLowerCase() == 'select' || genderVal.toLowerCase() == 'none') ? '' : genderVal,
+        'birth_time': birthTimeController.text.trim(),
+        'place_of_birth': birthPlaceController.text.trim(),
+        'marital_status': (maritalVal.toLowerCase() == 'select' || maritalVal.toLowerCase() == 'none') ? '' : maritalVal,
+        'occupation': occupationController.text.trim(),
+      };
 
-    final res = await _api.put(ApiConstants.profile, data: finalData);
-    isSaving.value = false;
-    if (ApiService.isSuccess(res)) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(AppConstants.keyProfileComplete, true);
-      await prefs.setString(AppConstants.keyUserName, nameController.text.trim());
-      await prefs.setString(AppConstants.keyUserEmail, emailController.text.trim());
-      await prefs.setString(AppConstants.keyUserPhone, profile['mobile']?.toString() ?? '');
-      SnackbarUtil.success('Profile updated successfully!');
-      await _fetchProfile();
-    } else {
-      SnackbarUtil.error(ApiService.getMessage(res));
+      dynamic finalData;
+      if (imageFile.value != null) {
+        finalData = dio.FormData.fromMap({
+          ...data,
+          'profile_pic': await dio.MultipartFile.fromFile(imageFile.value!.path),
+        });
+      } else {
+        finalData = data;
+      }
+
+      final res = await _api.put(ApiConstants.profile, data: finalData);
+      if (ApiService.isSuccess(res)) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(AppConstants.keyProfileComplete, true);
+        await prefs.setString(AppConstants.keyUserName, nameController.text.trim());
+        await prefs.setString(AppConstants.keyUserEmail, emailController.text.trim());
+        await prefs.setString(AppConstants.keyUserPhone, profile['mobile']?.toString() ?? '');
+        SnackbarUtil.success('Profile updated successfully!');
+        imageFile.value = null;
+        await _fetchProfile();
+        Get.back();
+      } else {
+        SnackbarUtil.error(ApiService.getMessage(res));
+      }
+    } catch (e) {
+      debugPrint('Error updating profile: $e');
+      SnackbarUtil.error('Failed to update profile: $e');
+    } finally {
+      isSaving.value = false;
     }
   }
 
@@ -190,12 +220,16 @@ class ProfileController extends GetxController {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.keyIsLoggedIn, false);
+    await prefs.setBool(AppConstants.keyProfileComplete, false);
     await prefs.remove(AppConstants.keyToken);
     await prefs.remove(AppConstants.keyUserId);
     await prefs.remove(AppConstants.keyUserName);
     await prefs.remove(AppConstants.keyUserData);
-    await prefs.setBool(AppConstants.keyIsLoggedIn, false);
-    await prefs.setBool(AppConstants.keyProfileComplete, false);
+
+    // Clean up all controllers and socket listeners cleanly
+    Get.deleteAll(force: true);
+
     Get.offAllNamed(AppRoutes.login);
   }
 

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../localization/app_language_controller.dart';
 
 class NameTransliterationUtils {
   // Standard honorific titles & prefixes
@@ -34,119 +35,7 @@ class NameTransliterationUtils {
     'astrologers': 'ज्योतिषी',
   };
 
-  // Common Indian surname & name stems for natural Indic phonetics
-  static const Map<String, String> _stemGujarati = {
-    'dixit': 'દીક્ષિત',
-    'dikshit': 'દીક્ષિત',
-    'desai': 'દેસાઈ',
-    'shah': 'શાહ',
-    'patel': 'પટેલ',
-    'shukla': 'શુક્લા',
-    'sharma': 'શર્મા',
-    'singh': 'સિંહ',
-    'chauhan': 'ચૌહાણ',
-    'joshi': 'જોશી',
-    'mehta': 'મહેતા',
-    'pandya': 'પંડ્યા',
-    'bhatt': 'ભટ્ટ',
-    'trivedi': 'ત્રિવેદી',
-    'dave': 'દવે',
-    'vyas': 'વ્યાસ',
-    'parikh': 'પરીખ',
-    'gupta': 'ગુપ્તા',
-    'kumar': 'કુમાર',
-    'mishra': 'મિશ્રા',
-    'tiwari': 'તિવારી',
-    'yadav': 'યાદવ',
-    'dubey': 'દુબે',
-    'pandey': 'પાંડેય',
-    'verma': 'વર્મા',
-    'sinha': 'સિન્હા',
-    'tejas': 'તેજસ',
-    'shivam': 'શિવમ',
-    'sohan': 'સોહન',
-    'aarav': 'આરવ',
-    'rohan': 'રોહન',
-    'gautam': 'ગૌતમ',
-    'ragini': 'રાગિની',
-    'shloka': 'શ્લોકા',
-    'ananya': 'અનન્યા',
-    'rahul': 'રાહુલ',
-    'priya': 'પ્રિયા',
-    'siddhi': 'સિદ્ધિ',
-    'anand': 'આનંદ',
-    'vraj': 'વ્રજ',
-    'pooja': 'પૂજા',
-    'neha': 'નેહા',
-    'rohit': 'રોહિત',
-    'sunil': 'સુનીલ',
-    'rajesh': 'રાજેશ',
-    'sanjay': 'સંજય',
-    'deepak': 'દીપક',
-    'kiran': 'કિરણ',
-    'kavita': 'કવિતા',
-    'amit': 'અમિત',
-    'vijay': 'વિજય',
-    'bhavin': 'ભાવિન',
-    'rushabh': 'ઋષભ',
-  };
-
-  static const Map<String, String> _stemHindi = {
-    'dixit': 'दीक्षित',
-    'dikshit': 'दीक्षित',
-    'desai': 'देसाई',
-    'shah': 'शाह',
-    'patel': 'पटेल',
-    'shukla': 'शुक्ला',
-    'sharma': 'शर्मा',
-    'singh': 'सिंह',
-    'chauhan': 'चौहान',
-    'joshi': 'जोशी',
-    'mehta': 'मेहता',
-    'pandya': 'पंड्या',
-    'bhatt': 'भट्ट',
-    'trivedi': 'त्रिवेदी',
-    'dave': 'दवे',
-    'vyas': 'व्यास',
-    'parikh': 'पारीख',
-    'gupta': 'गुप्ता',
-    'kumar': 'कुमार',
-    'mishra': 'मिश्रा',
-    'tiwari': 'तिवारी',
-    'yadav': 'यादव',
-    'dubey': 'दुबे',
-    'pandey': 'पांडेय',
-    'verma': 'वर्मा',
-    'sinha': 'सिन्हा',
-    'tejas': 'तेजस',
-    'shivam': 'शिवम',
-    'sohan': 'सोहन',
-    'aarav': 'आरव',
-    'rohan': 'रोहन',
-    'gautam': 'गौतम',
-    'ragini': 'रागिनी',
-    'shloka': 'श्लोका',
-    'ananya': 'अनन्या',
-    'rahul': 'राहुल',
-    'priya': 'प्रिया',
-    'siddhi': 'सिद्धि',
-    'anand': 'आनंद',
-    'vraj': 'व्रज',
-    'pooja': 'पूजा',
-    'neha': 'नेहा',
-    'rohit': 'रोहित',
-    'sunil': 'सुनील',
-    'rajesh': 'राजेश',
-    'sanjay': 'संजय',
-    'deepak': 'दीपक',
-    'kiran': 'किरण',
-    'kavita': 'कविता',
-    'amit': 'अमित',
-    'vijay': 'विजय',
-    'bhavin': 'भाविन',
-    'rushabh': 'ऋषभ',
-  };
-
+  // Dynamic Indic Specializations
   static const Map<String, String> _specializationsGujarati = {
     'astrology skills': 'જ્યોતિષ કૌશલ્ય',
     'vedic astrology': 'વૈદિક જ્યોતિષ',
@@ -234,7 +123,12 @@ class NameTransliterationUtils {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return name;
 
-    final lang = Get.locale?.languageCode ?? 'en';
+    String lang = 'en';
+    if (Get.isRegistered<AppLanguageController>()) {
+      lang = Get.find<AppLanguageController>().currentLanguageCode;
+    } else {
+      lang = Get.locale?.languageCode ?? 'en';
+    }
 
     if (lang == 'gu') {
       if (hasDevanagari(trimmed)) {
@@ -269,12 +163,6 @@ class NameTransliterationUtils {
         return _titlesHindi[lower]!;
       }
 
-      if (isGu && _stemGujarati.containsKey(lower)) {
-        return _stemGujarati[lower]!;
-      } else if (!isGu && _stemHindi.containsKey(lower)) {
-        return _stemHindi[lower]!;
-      }
-
       return _transliterateSingleWord(w, isGu: isGu);
     }).where((w) => w.isNotEmpty).toList();
 
@@ -282,11 +170,24 @@ class NameTransliterationUtils {
   }
 
   static String _transliterateSingleWord(String word, {required bool isGu}) {
-    final s = word.toLowerCase().trim();
+    var s = word.toLowerCase().trim();
     if (s.isEmpty) return word;
 
     final virama = isGu ? '\u0ACD' : '\u094D';
     final aaMatra = isGu ? 'ા' : 'ा';
+    final anusvara = isGu ? 'ં' : 'ं';
+
+    // Systematic phonetic refinement for Indic romanization patterns
+    s = s.replaceAllMapped(RegExp(r'eht'), (_) => 'ehat');
+    s = s.replaceAllMapped(RegExp(r'^ra([jhkmp])'), (m) => 'raa${m[1]}');
+    s = s.replaceAllMapped(RegExp(r'kumar'), (_) => 'kumaar');
+    s = s.replaceAllMapped(RegExp(r'^verma'), (_) => 'varma');
+    s = s.replaceAllMapped(RegExp(r'^dix'), (_) => 'deex');
+    s = s.replaceAllMapped(RegExp(r'tel$'), (_) => 'Tel');
+    s = s.replaceAllMapped(RegExp(r'tt'), (_) => 'Tt');
+    s = s.replaceAllMapped(RegExp(r'singh$'), (_) => 'siMh');
+    s = s.replaceAllMapped(RegExp(r'chauhan$'), (_) => isGu ? 'chouhaaN' : 'chouhaan');
+    s = s.replaceAllMapped(RegExp(r'anand$'), (_) => 'aaNaMd');
 
     final indVowels = isGu
         ? {
@@ -316,20 +217,20 @@ class NameTransliterationUtils {
         ? {
             'shh': 'ષ', 'chh': 'છ', 'thh': 'ઠ', 'dhh': 'ઢ', 'kh': 'ખ',
             'gh': 'ઘ', 'ch': 'ચ', 'jh': 'ઝ', 'th': 'થ', 'dh': 'ધ',
-            'ph': 'ફ', 'bh': 'ભ', 'sh': 'શ', 'k': 'ક', 'g': 'ગ',
-            'c': 'ક', 'j': 'જ', 't': 'ત', 'd': 'દ', 'n': 'ન',
-            'p': 'પ', 'f': 'ફ', 'b': 'બ', 'm': 'મ', 'y': 'ય',
-            'r': 'ર', 'l': 'લ', 'v': 'વ', 'w': 'વ', 's': 'સ',
-            'h': 'હ', 'z': 'ઝ'
+            'ph': 'ફ', 'bh': 'ભ', 'sh': 'શ', 'Tt': 'ટ્ટ', 'T': 'ટ',
+            'k': 'ક', 'g': 'ગ', 'c': 'ક', 'j': 'જ', 't': 'ત',
+            'd': 'દ', 'N': 'ણ', 'n': 'ન', 'p': 'પ', 'f': 'ફ',
+            'b': 'બ', 'm': 'મ', 'y': 'ય', 'r': 'ર', 'l': 'લ',
+            'v': 'વ', 'w': 'વ', 's': 'સ', 'h': 'હ', 'z': 'ઝ'
           }
         : {
             'shh': 'ष', 'chh': 'छ', 'thh': 'ठ', 'dhh': 'ढ', 'kh': 'ख',
             'gh': 'घ', 'ch': 'च', 'jh': 'झ', 'th': 'थ', 'dh': 'ध',
-            'ph': 'फ', 'bh': 'भ', 'sh': 'श', 'k': 'क', 'g': 'ग',
-            'c': 'क', 'j': 'ज', 't': 'त', 'd': 'द', 'n': 'न',
-            'p': 'प', 'f': 'फ़', 'b': 'ब', 'm': 'म', 'y': 'य',
-            'r': 'र', 'l': 'ल', 'v': 'व', 'w': 'व', 's': 'स',
-            'h': 'ह', 'z': 'ज़'
+            'ph': 'फ', 'bh': 'भ', 'sh': 'श', 'Tt': 'ट्ट', 'T': 'ट',
+            'k': 'क', 'g': 'ग', 'c': 'क', 'j': 'ज', 't': 'त',
+            'd': 'द', 'N': 'ण', 'n': 'न', 'p': 'प', 'f': 'फ़',
+            'b': 'ब', 'm': 'म', 'y': 'य', 'r': 'र', 'l': 'ल',
+            'v': 'व', 'w': 'व', 's': 'स', 'h': 'ह', 'z': 'ज़'
           };
 
     final kLetter = isGu ? 'ક' : 'क';
@@ -341,7 +242,55 @@ class NameTransliterationUtils {
     bool lastWasConsonant = false;
 
     while (i < s.length) {
-      // 1. Special 'x' cluster -> k + virama + sh
+      // Anusvara token 'M'
+      if (s[i] == 'M') {
+        buffer.write(anusvara);
+        lastWasConsonant = false;
+        i++;
+        continue;
+      }
+
+      // Rule: word-ending 'ai' after consonant -> ાઈ / ाई (e.g. Desai, Bhai, Rai)
+      if (s.substring(i).startsWith('ai') && (i + 2 == s.length || !RegExp(r'[a-zA-Z]').hasMatch(s[i + 2]))) {
+        if (lastWasConsonant) {
+          buffer.write(aaMatra + (isGu ? 'ઈ' : 'ई'));
+          lastWasConsonant = false;
+          i += 2;
+          continue;
+        }
+      }
+
+      // Rule: word-ending 'ah' after consonant -> ા + હ (e.g. Shah)
+      if (s.substring(i).startsWith('ah') && (i + 2 == s.length || !RegExp(r'[a-zA-Z]').hasMatch(s[i + 2]))) {
+        if (lastWasConsonant) {
+          buffer.write(aaMatra + (isGu ? 'હ' : 'ह'));
+          lastWasConsonant = true;
+          i += 2;
+          continue;
+        }
+      }
+
+      // Rule: word-ending 'ay' after consonant -> ાય or ય (e.g. Vijay, Sanjay, Ajay)
+      if (s.substring(i).startsWith('ay') && (i + 2 == s.length || !RegExp(r'[a-zA-Z]').hasMatch(s[i + 2]))) {
+        if (lastWasConsonant) {
+          buffer.write(isGu ? 'ય' : 'य');
+          lastWasConsonant = true;
+          i += 2;
+          continue;
+        }
+      }
+
+      // Rule: word-ending 'ey' after consonant -> ે / े (e.g. Dubey, Pandey)
+      if (s.substring(i).startsWith('ey') && (i + 2 == s.length || !RegExp(r'[a-zA-Z]').hasMatch(s[i + 2]))) {
+        if (lastWasConsonant) {
+          buffer.write(isGu ? 'ે' : 'े');
+          lastWasConsonant = false;
+          i += 2;
+          continue;
+        }
+      }
+
+      // Special 'x' cluster -> k + virama + sh
       if (s[i] == 'x') {
         if (lastWasConsonant) buffer.write(virama);
         buffer.write(xCluster);
@@ -350,7 +299,7 @@ class NameTransliterationUtils {
         continue;
       }
 
-      // 2. Multi-char consonants (3, 2, 1)
+      // Multi-char consonants
       String? cMatch;
       int cLen = 0;
       for (final len in [3, 2, 1]) {
@@ -374,7 +323,7 @@ class NameTransliterationUtils {
         continue;
       }
 
-      // 3. Vowels (2, 1)
+      // Vowels
       String? vMatch;
       int vLen = 0;
       for (final len in [2, 1]) {

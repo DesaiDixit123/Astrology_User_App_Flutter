@@ -113,20 +113,28 @@ class ProfilePage extends GetView<ProfileController> {
                     ),
                     SizedBox(height: 12.h),
                     Obx(() {
-                      final rawName = controller.userData['name']?.toString() ?? 'user'.tr;
+                      final rawName = controller.userData['name']?.toString();
+                      final displayName = (rawName != null && rawName.trim().isNotEmpty)
+                          ? GujaratiScriptUtils.toGujaratiName(rawName.trim())
+                          : 'user'.tr;
                       return Text(
-                        GujaratiScriptUtils.toGujaratiName(rawName),
+                        displayName,
                         style: AppTextStyles.displayMedium.copyWith(
                           color: Colors.white,
                         ),
                       );
                     }),
-                    Text(
-                      controller.phoneController.text,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
+                    Obx(() {
+                      final mobile = controller.userData['mobile']?.toString() ?? '';
+                      final code = controller.userData['country_code']?.toString() ?? '+91';
+                      final phoneText = mobile.isNotEmpty ? '$code $mobile' : controller.phoneController.text;
+                      return Text(
+                        phoneText,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: Colors.white70,
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
