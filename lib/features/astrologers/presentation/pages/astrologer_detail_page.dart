@@ -5,12 +5,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:astrology_user/core/constants/api_constants.dart';
-import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
 import 'package:astrology_user/core/utils/astrologer_utils.dart';
+import 'package:astrology_user/core/utils/name_transliteration_utils.dart';
 import 'package:astrology_user/features/astrologers/presentation/controllers/astrologer_controller.dart';
 import 'package:astrology_user/features/calls/presentation/controllers/call_controller.dart';
 import 'package:astrology_user/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:astrology_user/core/utils/snackbar_util.dart';
+import 'package:astrology_user/config/routes/app_routes.dart';
+
+import 'package:astrology_user/features/home/presentation/controllers/home_controller.dart';
 
 class AstrologerDetailPage extends StatefulWidget {
   const AstrologerDetailPage({super.key});
@@ -27,11 +30,22 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
     super.initState();
     final args = Get.arguments;
     final astrologerId = (args is Map) ? args['_id']?.toString() : null;
-    if (astrologerId != null && astrologerId.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        controller.refreshSelectedAstrologer(astrologerId);
-      });
+
+    // Immediately synchronize AI state from HomeController if registered
+    if (Get.isRegistered<HomeController>()) {
+      final homeCtrl = Get.find<HomeController>();
+      controller.isAiFreeAvailable.value = homeCtrl.isAiFreeAvailable.value;
+      controller.aiChatPrice.value = homeCtrl.aiChatPrice.value;
+      controller.isAiChatEnabled.value = homeCtrl.isAiChatEnabled.value;
+      controller.isAiFirstChatFree.value = homeCtrl.isAiFirstChatFree.value;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchAiChatConfigAndEligibility();
+      if (astrologerId != null && astrologerId.isNotEmpty) {
+        controller.refreshSelectedAstrologer(astrologerId);
+      }
+    });
   }
 
   @override
@@ -86,15 +100,13 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
   String? _id(Map a) => (a['_id'] ?? a['id'])?.toString();
   String _name(Map a) => AstrologerUtils.getLocalizedAstrologerName(a);
   String _specialization(Map a) {
-    final skills = a['skills'];
-    if (skills is List && skills.isNotEmpty) return skills.first.toString();
-    return a['specialization'] as String? ?? 'Astrologer';
+    return AstrologerUtils.getLocalizedAstrologerSpecialization(a);
   }
 
   String _experience(Map a) {
     final exp = a['experience'] ?? a['experience_years'];
     if (exp == null) return 'N/A';
-    return '${exp}yr';
+    return '${NameTransliterationUtils.toLocalizedNumber(exp)} yr';
   }
 
   num _price(Map a) =>
@@ -117,11 +129,13 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
   num _voicePrice(Map a) => (a['voicePrice'] ?? _price(a)) as num;
   num _videoPrice(Map a) => (a['videoPrice'] ?? _price(a)) as num;
   String _bio(Map a) => AstrologerUtils.getLocalizedAstrologerBio(a);
-  String? _profilePic(Map a) =>
-      (a['profilePic'] ?? a['profile_pic']) as String?;
+  String? _profilePic(Map a) => AstrologerUtils.getAstrologerImage(a);
   List<dynamic> _skills(Map a) {
     final s = a['skills'];
-    return s is List ? s : [];
+    if (s is List) {
+      return s.map((e) => NameTransliterationUtils.toLocalizedSpecialization(e.toString())).toList();
+    }
+    return [];
   }
 
   List<Map<String, dynamic>> _reviews(Map a) {
@@ -172,6 +186,8 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
   }
 
   Widget _buildAppBar(Map astrologer) {
+    final bool isAi = astrologer['is_ai'] == true ||
+        (astrologer['_id']?.toString().startsWith('6aa00000000000000000000') ?? false);
     final pic = _profilePic(astrologer);
     return SliverAppBar(
       expandedHeight: 250.h,
@@ -192,30 +208,32 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
                   ),
                   padding: EdgeInsets.all(2.w),
                   child: ClipOval(
-                    child: pic != null && pic.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: ApiConstants.resolveImage(pic),
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[200],
-                              child: Icon(
-                                Icons.person,
-                                size: 45.sp,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: Icon(
-                              Icons.person,
-                              size: 45.sp,
-                              color: Colors.grey[500],
-                            ),
-                          ),
+                    child: isAi
+                        ? _buildAiAvatar(astrologer, 90.w)
+                        : (pic != null && pic.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: ApiConstants.resolveImage(pic),
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[200],
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 45.sp,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                color: Colors.grey[200],
+                                child: Icon(
+                                  Icons.person,
+                                  size: 45.sp,
+                                  color: Colors.grey[500],
+                                ),
+                              )),
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -481,10 +499,12 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
   }
 
   Widget _buildBottomBarDirect(Map astrologer) {
-    final online = _isOnline(astrologer);
-    final chatEnabled = _isChatEnabled(astrologer);
-    final callEnabled = _isCallEnabled(astrologer);
-    final videoCallEnabled = _isVideoCallEnabled(astrologer);
+    final bool isAi = astrologer['is_ai'] == true ||
+        (astrologer['_id']?.toString().startsWith('6aa00000000000000000000') ?? false);
+    final online = isAi ? true : _isOnline(astrologer);
+    final chatEnabled = isAi ? true : _isChatEnabled(astrologer);
+    final callEnabled = isAi ? true : _isCallEnabled(astrologer);
+    final videoCallEnabled = isAi ? false : _isVideoCallEnabled(astrologer);
 
     return SafeArea(
       top: false,
@@ -513,145 +533,271 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Obx(() {
-                      if (controller.isFreeChatEligible.value) {
+                    if (isAi)
+                      Obx(() {
+                        final isFree = controller.isAiFreeAvailable.value;
                         return Container(
                           margin: EdgeInsets.only(bottom: 2.h),
                           padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF3E0),
+                            color: isFree ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
                             borderRadius: BorderRadius.circular(4.r),
-                            border: Border.all(color: const Color(0xFFFFB74D), width: 0.5.w),
+                            border: Border.all(
+                              color: isFree ? const Color(0xFF81C784) : const Color(0xFFFFB74D),
+                              width: 0.5.w,
+                            ),
                           ),
                           child: Text(
-                            '${controller.freeChatDurationMinutes.value} Min Free Chat',
+                            isFree ? 'Your first chat is FREE' : 'AI Astrologer Chat',
                             style: TextStyle(
-                              color: const Color(0xFFE65100),
+                              color: isFree ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
                               fontSize: 9.sp,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         );
-                      }
-                      return const SizedBox.shrink();
-                    }),
-                    Text('chat_fee'.tr, style: AppTextStyles.caption),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '₹${_chatPrice(astrologer)}',
-                            style: AppTextStyles.h4.copyWith(color: AppColors.primary),
-                          ),
-                          TextSpan(
-                            text: '/min',
-                            style: AppTextStyles.caption.copyWith(fontSize: 12.sp),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: (online && chatEnabled) ? AppColors.secondaryGradient : null,
-                    color: (online && chatEnabled) ? null : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(16.r),
-                    boxShadow: (online && chatEnabled) ? [
-                      BoxShadow(
-                        color: AppColors.secondary.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      )
-                    ] : null,
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                              if (!(online && chatEnabled)) {
-                                SnackbarUtil.error('Astrologer is not available for chat right now.');
-                                return;
-                              }
-                              if (!Get.isRegistered<ChatController>()) {
-                                Get.put(ChatController());
-                              }
-                              final chatCtrl = Get.find<ChatController>();
-                              chatCtrl.partner.assignAll(astrologer);
-                              chatCtrl.initiateChat();
-                            },
-                      borderRadius: BorderRadius.circular(16.r),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.chat_bubble_rounded, size: 18.sp, color: Colors.white),
-                            SizedBox(width: 8.w),
-                            Text(
-                              'chat'.tr.toUpperCase(),
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: Colors.white,
+                      })
+                    else
+                      Obx(() {
+                        if (controller.isFreeChatEligible.value) {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 2.h),
+                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(4.r),
+                              border: Border.all(color: const Color(0xFFFFB74D), width: 0.5.w),
+                            ),
+                            child: Text(
+                              '${controller.freeChatDurationMinutes.value} Min Free Chat',
+                              style: TextStyle(
+                                color: const Color(0xFFE65100),
+                                fontSize: 9.sp,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
                               ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }),
+                    Text('chat_fee'.tr, style: AppTextStyles.caption),
+                    if (isAi)
+                      Obx(() {
+                        final isFree = controller.isAiFreeAvailable.value;
+                        final price = controller.aiChatPrice.value;
+                        return RichText(
+                          text: TextSpan(
+                            children: [
+                              if (isFree) ...[
+                                TextSpan(
+                                  text: '₹$price ',
+                                  style: AppTextStyles.h4.copyWith(
+                                    color: Colors.grey,
+                                    decoration: TextDecoration.lineThrough,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'FREE',
+                                  style: AppTextStyles.h4.copyWith(
+                                    color: const Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ] else ...[
+                                TextSpan(
+                                  text: '₹$price',
+                                  style: AppTextStyles.h4.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' / Chat',
+                                  style: AppTextStyles.caption.copyWith(fontSize: 12.sp),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      })
+                    else
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '₹${_chatPrice(astrologer)}',
+                              style: AppTextStyles.h4.copyWith(color: AppColors.primary),
+                            ),
+                            TextSpan(
+                              text: '/min',
+                              style: AppTextStyles.caption.copyWith(fontSize: 12.sp),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
+              Obx(() {
+                final isFree = controller.isAiFreeAvailable.value;
+                final aiPrice = controller.aiChatPrice.value;
+                final isAiActive = controller.isAiChatEnabled.value;
+                final canChat = isAi ? isAiActive : (online && chatEnabled);
+
+                return Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: canChat
+                          ? (isAi && isFree
+                              ? const LinearGradient(colors: [Color(0xFF2E7D32), Color(0xFF43A047)])
+                              : AppColors.secondaryGradient)
+                          : null,
+                      color: canChat ? null : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: canChat
+                          ? [
+                              BoxShadow(
+                                color: (isAi && isFree ? Colors.green : AppColors.secondary).withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          if (!canChat) {
+                            SnackbarUtil.error(isAi
+                                ? 'AI Astrologer Chat is currently unavailable. Please try again later.'
+                                : 'Astrologer is not available for chat right now.');
+                            return;
+                          }
+                          if (!Get.isRegistered<ChatController>()) {
+                            Get.put(ChatController());
+                          }
+                          final chatCtrl = Get.find<ChatController>();
+                          chatCtrl.partner.assignAll(astrologer);
+
+                          if (isAi && !isFree) {
+                            final walletBal = controller.customerWalletBalance.value;
+                            if (walletBal < aiPrice) {
+                              Get.defaultDialog(
+                                title: 'Insufficient Balance',
+                                middleText:
+                                    'AI Astrologer consultation fee is ₹$aiPrice.\nYour wallet balance is ₹${walletBal.toStringAsFixed(0)}.\nPlease recharge to continue.',
+                                textConfirm: 'Recharge',
+                                textCancel: 'Cancel',
+                                confirmTextColor: Colors.white,
+                                buttonColor: AppColors.primary,
+                                onConfirm: () {
+                                  Get.back();
+                                  Get.toNamed(AppRoutes.recharge);
+                                },
+                              );
+                              return;
+                            }
+
+                            Get.defaultDialog(
+                              title: 'AI Astrologer Chat',
+                              middleText:
+                                  'Start chat with ${astrologer['name'] ?? 'AI Astrologer'} for ₹$aiPrice?\n(Current Wallet: ₹${walletBal.toStringAsFixed(0)})',
+                              textConfirm: 'Start Chat',
+                              textCancel: 'Cancel',
+                              confirmTextColor: Colors.white,
+                              buttonColor: AppColors.secondary,
+                              onConfirm: () {
+                                Get.back();
+                                chatCtrl.initiateChat();
+                              },
+                            );
+                            return;
+                          }
+
+                          chatCtrl.initiateChat();
+                        },
+                        borderRadius: BorderRadius.circular(16.r),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isAi ? Icons.auto_awesome : Icons.chat_bubble_rounded,
+                                size: 18.sp,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                isAi
+                                    ? (!isAiActive
+                                        ? 'UNAVAILABLE'
+                                        : (isFree ? 'START FREE CHAT' : 'START CHAT (₹$aiPrice)'))
+                                    : 'chat'.tr.toUpperCase(),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ],
           ),
           SizedBox(height: 16.h),
-          // Call Row
-          Row(
-            children: [
-              _buildCallButton(
-                icon: Icons.call_rounded,
-                label: 'voice_call'.tr,
-                price: _voicePrice(astrologer),
-                isEnabled: online && callEnabled,
-                color: AppColors.primary,
-                gradient: AppColors.primaryGradient,
-                onTap: () {
-                  if (!Get.isRegistered<CallController>()) {
-                    Get.put(CallController());
-                  }
-                  Get.find<CallController>().partner.value = astrologer;
-                  Get.find<CallController>().initiateCall(astrologer['_id'].toString());
-                },
-              ),
-              SizedBox(width: 12.w),
-              _buildCallButton(
-                icon: Icons.videocam_rounded,
-                label: 'video_call'.tr,
-                price: _videoPrice(astrologer),
-                isEnabled: online && videoCallEnabled,
-                color: Colors.purple,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8E24AA), Color(0xFFD81B60)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          // Call Row: Completely hidden for AI Astrologers (AI Astrologer is CHAT ONLY)
+          if (!isAi)
+            Row(
+              children: [
+                _buildCallButton(
+                  icon: Icons.call_rounded,
+                  label: 'voice_call'.tr,
+                  price: _voicePrice(astrologer),
+                  isEnabled: online && callEnabled,
+                  color: AppColors.primary,
+                  gradient: AppColors.primaryGradient,
+                  onTap: () {
+                    if (!Get.isRegistered<CallController>()) {
+                      Get.put(CallController());
+                    }
+                    Get.find<CallController>().partner.value = astrologer;
+                    Get.find<CallController>().initiateCall(astrologer['_id'].toString());
+                  },
                 ),
-                onTap: () {
-                  if (!Get.isRegistered<CallController>()) {
-                    Get.put(CallController());
-                  }
-                  Get.find<CallController>().partner.value = astrologer;
-                  Get.find<CallController>().initiateCall(
-                    astrologer['_id'].toString(),
-                    type: 'video_call',
-                  );
-                },
-              ),
-            ],
-          ),
+                SizedBox(width: 12.w),
+                _buildCallButton(
+                  icon: Icons.videocam_rounded,
+                  label: 'video_call'.tr,
+                  price: _videoPrice(astrologer),
+                  isEnabled: online && videoCallEnabled,
+                  color: Colors.purple,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8E24AA), Color(0xFFD81B60)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  onTap: () {
+                    if (!Get.isRegistered<CallController>()) {
+                      Get.put(CallController());
+                    }
+                    Get.find<CallController>().partner.value = astrologer;
+                    Get.find<CallController>().initiateCall(
+                      astrologer['_id'].toString(),
+                      type: 'video_call',
+                    );
+                  },
+                ),
+              ],
+            ),
         ],
       ),
     ),
@@ -716,10 +862,84 @@ class _AstrologerDetailPageState extends State<AstrologerDetailPage> {
           ),
           SizedBox(height: 6.h),
           Text(
-            '₹$price/min',
+            price == 0 ? 'FREE' : '₹$price/min',
             style: AppTextStyles.caption.copyWith(
               fontWeight: FontWeight.w600,
               color: isEnabled ? AppColors.textPrimary : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiAvatar(Map astro, double size) {
+    final name = (astro['name'] ?? '').toString();
+
+    List<Color> gradientColors;
+    IconData iconData;
+    IconData faceIcon;
+
+    if (name.contains('Aarav')) {
+      gradientColors = const [Color(0xFFFF9933), Color(0xFFFF5722)];
+      iconData = Icons.auto_awesome;
+      faceIcon = Icons.face;
+    } else if (name.contains('Rohan')) {
+      gradientColors = const [Color(0xFF1E3C72), Color(0xFF2A5298)];
+      iconData = Icons.insights_rounded;
+      faceIcon = Icons.face;
+    } else if (name.contains('Gautam')) {
+      gradientColors = const [Color(0xFF00796B), Color(0xFF004D40)];
+      iconData = Icons.diamond_outlined;
+      faceIcon = Icons.face;
+    } else if (name.contains('Ragini')) {
+      gradientColors = const [Color(0xFFE91E63), Color(0xFFFF6090)];
+      iconData = Icons.spa_rounded;
+      faceIcon = Icons.face_3;
+    } else if (name.contains('Shloka')) {
+      gradientColors = const [Color(0xFF7B1FA2), Color(0xFF4A148C)];
+      iconData = Icons.style_rounded;
+      faceIcon = Icons.face_3;
+    } else {
+      gradientColors = const [Color(0xFFD81B60), Color(0xFF880E4F)];
+      iconData = Icons.visibility_rounded;
+      faceIcon = Icons.face_3;
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Icon(
+            faceIcon,
+            color: Colors.white,
+            size: size * 0.58,
+          ),
+          Positioned(
+            bottom: 2,
+            right: 2,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Icon(
+                iconData,
+                color: const Color(0xFFFFD54F),
+                size: size * 0.22,
+              ),
             ),
           ),
         ],

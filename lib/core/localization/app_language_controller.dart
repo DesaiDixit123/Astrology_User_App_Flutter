@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import '../network/api_service.dart';
+import '../constants/api_constants.dart';
 import '../../features/home/presentation/controllers/home_controller.dart';
 import '../../features/astrologers/presentation/controllers/astrologer_controller.dart';
 import '../../features/live/presentation/controllers/live_controller.dart';
 import '../../features/blogs/presentation/controllers/blog_controller.dart';
+import '../../features/profile/presentation/controllers/profile_controller.dart';
 
 class AppLanguageOption {
   const AppLanguageOption({
@@ -67,6 +70,14 @@ class AppLanguageController extends GetxController {
     currentLocale.value = language.locale;
     await Get.updateLocale(language.locale);
 
+    // Sync selected language to backend for personalized push notifications
+    try {
+      ApiService.instance.put(
+        ApiConstants.profile,
+        data: {'language': language.code},
+      ).catchError((_) => null);
+    } catch (_) {}
+
     // Refresh active controllers so dynamic data and headers update seamlessly
     _refreshActiveControllers();
   }
@@ -84,6 +95,9 @@ class AppLanguageController extends GetxController {
       }
       if (Get.isRegistered<BlogController>()) {
         Get.find<BlogController>().loadBlogs(refresh: true);
+      }
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().loadProfile();
       }
     } catch (e) {
       debugPrint('Error refreshing controllers on language change: $e');

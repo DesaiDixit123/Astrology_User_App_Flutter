@@ -1,256 +1,471 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class NameTransliterationUtils {
-  static const Map<String, String> _knownGujarati = {
-    'Shloka Patel': 'શ્લોકા પટેલ',
-    'Siddhi Chauhan': 'સિદ્ધિ ચૌહાણ',
-    'Rahul Sharma': 'રાહુલ શર્મા',
-    'Priya Patel': 'પ્રિયા પટેલ',
-    'Anand Shastri': 'આનંદ શાસ્ત્રી',
-    'Acharya Vraj': 'આચાર્ય વ્રજ',
-    'Pandit Ji': 'પંડિત જી',
-    'Astrologer': 'જ્યોતિષી',
-    'Astrologers': 'જ્યોતિષીઓ',
-    'Acharya': 'આચાર્ય',
-    'Pandit': 'પંડિત',
-    'Dr.': 'ડૉ.',
-    'Shri': 'શ્રી',
-    'Smt.': 'શ્રીમતી',
-    'Swami': 'સ્વામી',
+  // Standard honorific titles & prefixes
+  static const Map<String, String> _titlesGujarati = {
+    'dr.': 'ડૉ.',
+    'dr': 'ડૉ.',
+    'pt.': 'પં.',
+    'pt': 'પં.',
+    'pandit': 'પંડિત',
+    'acharya': 'આચાર્ય',
+    'shri': 'શ્રી',
+    'smt.': 'શ્રીમતી',
+    'smt': 'શ્રીમતી',
+    'swami': 'સ્વામી',
+    'tarot': 'ટેરોટ',
+    'astrologer': 'જ્યોતિષી',
+    'astrologers': 'જ્યોતિષીઓ',
   };
 
-  static const Map<String, String> _knownHindi = {
-    'Shloka Patel': 'श्लोका पटेल',
-    'Siddhi Chauhan': 'सिद्धि चौहान',
-    'Rahul Sharma': 'राहुल शर्मा',
-    'Priya Patel': 'प्रिया पटेल',
-    'Anand Shastri': 'आनंद शास्त्री',
-    'Acharya Vraj': 'आचार्य व्रज',
-    'Pandit Ji': 'पंडित जी',
-    'Astrologer': 'ज्योतिषी',
-    'Astrologers': 'ज्योतिषी',
-    'Acharya': 'आचार्य',
-    'Pandit': 'पंडित',
-    'Dr.': 'डॉ.',
-    'Shri': 'श्री',
-    'Smt.': 'श्रीमती',
-    'Swami': 'स्वामी',
+  static const Map<String, String> _titlesHindi = {
+    'dr.': 'डॉ.',
+    'dr': 'डॉ.',
+    'pt.': 'पं.',
+    'pt': 'पं.',
+    'pandit': 'पंडित',
+    'acharya': 'आचार्य',
+    'shri': 'श्री',
+    'smt.': 'श्रीमती',
+    'smt': 'श्रीमती',
+    'swami': 'स्वामी',
+    'tarot': 'टैरो',
+    'astrologer': 'ज्योतिषी',
+    'astrologers': 'ज्योतिषी',
   };
 
-  static const Map<String, String> _phoneticGujarati = {
-    'shloka': 'શ્લોકા',
-    'siddhi': 'સિદ્ધિ',
-    'chauhan': 'ચૌહાણ',
-    'rahul': 'રાહુલ',
-    'sharma': 'શર્મા',
-    'priya': 'પ્રિયા',
+  // Common Indian surname & name stems for natural Indic phonetics
+  static const Map<String, String> _stemGujarati = {
+    'dixit': 'દીક્ષિત',
+    'dikshit': 'દીક્ષિત',
+    'desai': 'દેસાઈ',
+    'shah': 'શાહ',
     'patel': 'પટેલ',
+    'shukla': 'શુક્લા',
+    'sharma': 'શર્મા',
+    'singh': 'સિંહ',
+    'chauhan': 'ચૌહાણ',
+    'joshi': 'જોશી',
+    'mehta': 'મહેતા',
+    'pandya': 'પંડ્યા',
+    'bhatt': 'ભટ્ટ',
+    'trivedi': 'ત્રિવેદી',
+    'dave': 'દવે',
+    'vyas': 'વ્યાસ',
+    'parikh': 'પરીખ',
+    'gupta': 'ગુપ્તા',
+    'kumar': 'કુમાર',
+    'mishra': 'મિશ્રા',
+    'tiwari': 'તિવારી',
+    'yadav': 'યાદવ',
+    'dubey': 'દુબે',
+    'pandey': 'પાંડેય',
+    'verma': 'વર્મા',
+    'sinha': 'સિન્હા',
+    'tejas': 'તેજસ',
+    'shivam': 'શિવમ',
+    'sohan': 'સોહન',
+    'aarav': 'આરવ',
+    'rohan': 'રોહન',
+    'gautam': 'ગૌતમ',
+    'ragini': 'રાગિની',
+    'shloka': 'શ્લોકા',
+    'ananya': 'અનન્યા',
+    'rahul': 'રાહુલ',
+    'priya': 'પ્રિયા',
+    'siddhi': 'સિદ્ધિ',
     'anand': 'આનંદ',
-    'shastri': 'શાસ્ત્રી',
     'vraj': 'વ્રજ',
-    'vijay': 'વિજય',
-    'amit': 'અમિત',
     'pooja': 'પૂજા',
     'neha': 'નેહા',
     'rohit': 'રોહિત',
     'sunil': 'સુનીલ',
     'rajesh': 'રાજેશ',
-    'meena': 'મીના',
-    'geeta': 'ગીતા',
     'sanjay': 'સંજય',
     'deepak': 'દીપક',
-    'kavita': 'કવિતા',
-    'ramesh': 'રમેશ',
-    'manish': 'મનીષ',
-    'suresh': 'સુરેશ',
-    'dinesh': 'દિનેશ',
-    'mahesh': 'મહેશ',
     'kiran': 'કિરણ',
-    'rekha': 'રેખા',
-    'aarti': 'આરતી',
-    'kajal': 'કાજલ',
-    'divya': 'દિવ્યા',
+    'kavita': 'કવિતા',
+    'amit': 'અમિત',
+    'vijay': 'વિજય',
     'bhavin': 'ભાવિન',
     'rushabh': 'ઋષભ',
-    'desai': 'દેસાઈ',
-    'joshi': 'જોષી',
-    'trivedi': 'ત્રિવેદી',
-    'bhatt': 'ભટ્ટ',
-    'pandya': 'પંડ્યા',
-    'dave': 'દવે',
-    'vyas': 'વ્યાસ',
-    'parikh': 'પરીખ',
-    'shah': 'શાહ',
-    'mehta': 'મહેતા',
   };
 
-  static const Map<String, String> _phoneticHindi = {
-    'shloka': 'श्लोका',
-    'siddhi': 'सिद्धि',
-    'chauhan': 'चौहान',
-    'rahul': 'राहुल',
-    'sharma': 'शर्मा',
-    'priya': 'प्रिया',
+  static const Map<String, String> _stemHindi = {
+    'dixit': 'दीक्षित',
+    'dikshit': 'दीक्षित',
+    'desai': 'देसाई',
+    'shah': 'शाह',
     'patel': 'पटेल',
+    'shukla': 'शुक्ला',
+    'sharma': 'शर्मा',
+    'singh': 'सिंह',
+    'chauhan': 'चौहान',
+    'joshi': 'जोशी',
+    'mehta': 'मेहता',
+    'pandya': 'पंड्या',
+    'bhatt': 'भट्ट',
+    'trivedi': 'त्रिवेदी',
+    'dave': 'दवे',
+    'vyas': 'व्यास',
+    'parikh': 'पारीख',
+    'gupta': 'गुप्ता',
+    'kumar': 'कुमार',
+    'mishra': 'मिश्रा',
+    'tiwari': 'तिवारी',
+    'yadav': 'यादव',
+    'dubey': 'दुबे',
+    'pandey': 'पांडेय',
+    'verma': 'वर्मा',
+    'sinha': 'सिन्हा',
+    'tejas': 'तेजस',
+    'shivam': 'शिवम',
+    'sohan': 'सोहन',
+    'aarav': 'आरव',
+    'rohan': 'रोहन',
+    'gautam': 'गौतम',
+    'ragini': 'रागिनी',
+    'shloka': 'श्लोका',
+    'ananya': 'अनन्या',
+    'rahul': 'राहुल',
+    'priya': 'प्रिया',
+    'siddhi': 'सिद्धि',
     'anand': 'आनंद',
-    'shastri': 'शास्त्री',
     'vraj': 'व्रज',
-    'vijay': 'विजय',
-    'amit': 'अमित',
     'pooja': 'पूजा',
     'neha': 'नेहा',
     'rohit': 'रोहित',
     'sunil': 'सुनील',
     'rajesh': 'राजेश',
-    'meena': 'मीना',
-    'geeta': 'गीता',
     'sanjay': 'संजय',
     'deepak': 'दीपक',
-    'kavita': 'कविता',
-    'ramesh': 'रमेश',
-    'manish': 'मनीष',
-    'suresh': 'सुरेश',
-    'dinesh': 'दिनेश',
-    'mahesh': 'महेश',
     'kiran': 'किरण',
-    'rekha': 'रेखा',
-    'aarti': 'आरती',
-    'kajal': 'काजल',
-    'divya': 'दिव्या',
+    'kavita': 'कविता',
+    'amit': 'अमित',
+    'vijay': 'विजय',
     'bhavin': 'भाविन',
     'rushabh': 'ऋषभ',
-    'desai': 'देसाई',
-    'joshi': 'जोशी',
-    'trivedi': 'त्रिवेदी',
-    'bhatt': 'भट्ट',
-    'pandya': 'पंड्या',
-    'dave': 'दवे',
-    'vyas': 'व्यास',
-    'parikh': 'पारीख',
-    'shah': 'शाह',
-    'mehta': 'मेहता',
   };
 
-  /// Transliterates an English name into active language script (Gujarati, Hindi, or original English).
+  static const Map<String, String> _specializationsGujarati = {
+    'astrology skills': 'જ્યોતિષ કૌશલ્ય',
+    'vedic astrology': 'વૈદિક જ્યોતિષ',
+    'vedic astrologer': 'વૈદિક જ્યોતિષી',
+    'kundali matching': 'કુંડળી મિલાન',
+    'numerology': 'અંકશાસ્ત્ર',
+    'tarot reading': 'ટેરોટ રીડિંગ',
+    'tarot card reading': 'ટેરોટ કાર્ડ રીડિંગ',
+    'palmistry': 'હસ્તરેખા શાસ્ત્ર',
+    'vastu shastra': 'વાસ્તુ શાસ્ત્ર',
+    'gemology': 'રત્નશાસ્ત્ર',
+    'horoscope': 'રાશિફળ',
+    'love compatibility': 'પ્રેમ સુસંગતતા',
+    'prashna horary': 'પ્રશ્ન કુંડળી',
+    'spiritual counseling': 'આધ્યાત્મિક માર્ગદર્શન',
+    'vedic astrology & kundali': 'વૈદિક જ્યોતિષ અને કુંડળી',
+    'numerology & career growth': 'અંકશાસ્ત્ર અને કરિયર',
+    'vastu shastra & gemstones': 'વાસ્તુ શાસ્ત્ર અને રત્નો',
+    'love, marriage & relationships': 'પ્રેમ, લગ્ન અને સંબંધો',
+    'tarot reading & intuitive healing': 'ટેરોટ રીડિંગ અને હીલિંગ',
+    'prashna kundali & palmistry': 'પ્રશ્ન કુંડળી અને હસ્તરેખા',
+    'astrologer': 'જ્યોતિષી',
+  };
+
+  static const Map<String, String> _specializationsHindi = {
+    'astrology skills': 'ज्योतिष कौशल',
+    'vedic astrology': 'वैदिक ज्योतिष',
+    'vedic astrologer': 'वैदिक ज्योतिषी',
+    'kundali matching': 'कुंडली मिलान',
+    'numerology': 'अंकशास्त्र',
+    'tarot reading': 'टैरो रीडिंग',
+    'tarot card reading': 'टैरो कार्ड रीडिंग',
+    'palmistry': 'हस्तरेखा शास्त्र',
+    'vastu shastra': 'वास्तु शास्त्र',
+    'gemology': 'रत्नशास्त्र',
+    'horoscope': 'कुंडली / राशिफल',
+    'love compatibility': 'प्रेम अनुकूलता',
+    'prashna horary': 'प्रश्न कुंडली',
+    'spiritual counseling': 'आध्यात्मिक परामर्श',
+    'vedic astrology & kundali': 'वैदिक ज्योतिष और कुंडली',
+    'numerology & career growth': 'अंकशास्त्र और करियर',
+    'vastu shastra & gemstones': 'वास्तु शास्त्र और रत्न',
+    'love, marriage & relationships': 'प्रेम, विवाह और संबंध',
+    'tarot reading & intuitive healing': 'टैरो रीडिंग और हीलिंग',
+    'prashna kundali & palmistry': 'प्रश्न कुंडली और हस्तरेखा',
+    'astrologer': 'ज्योतिषी',
+  };
+
+  static bool hasDevanagari(String text) =>
+      RegExp(r'[\u0900-\u097F]').hasMatch(text);
+
+  static bool hasGujarati(String text) =>
+      RegExp(r'[\u0A80-\u0AFF]').hasMatch(text);
+
+  /// Dynamic 1-to-1 Unicode point mapping (+0x0180) converting Devanagari script to Gujarati script.
+  static String devanagariToGujarati(String text) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      final cp = text.codeUnitAt(i);
+      if ((cp >= 0x0901 && cp <= 0x0963) || (cp >= 0x0966 && cp <= 0x096F)) {
+        buffer.writeCharCode(cp + 0x0180);
+      } else {
+        buffer.write(text[i]);
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Dynamic 1-to-1 Unicode point mapping (-0x0180) converting Gujarati script to Devanagari script.
+  static String gujaratiToDevanagari(String text) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      final cp = text.codeUnitAt(i);
+      if ((cp >= 0x0A81 && cp <= 0x0AE3) || (cp >= 0x0AE6 && cp <= 0x0AEF)) {
+        buffer.writeCharCode(cp - 0x0180);
+      } else {
+        buffer.write(text[i]);
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Transliterates any English name dynamically into Gujarati / Hindi script live.
   static String toLocalizedName(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return name;
 
-    // If already contains Gujarati script (U+0A80 to U+0AFF) or Devanagari (U+0900 to U+097F), keep as is
-    if (RegExp(r'[\u0A80-\u0AFF]').hasMatch(trimmed) || RegExp(r'[\u0900-\u097F]').hasMatch(trimmed)) {
-      return trimmed;
-    }
-
     final lang = Get.locale?.languageCode ?? 'en';
+
     if (lang == 'gu') {
-      final res = _transliterate(trimmed, _knownGujarati, _phoneticGujarati, _toGujaratiScriptFallback);
-      return res.trim().isNotEmpty ? res.trim() : trimmed;
+      if (hasDevanagari(trimmed)) {
+        return devanagariToGujarati(trimmed);
+      }
+      if (hasGujarati(trimmed)) {
+        return trimmed;
+      }
+      return _liveTransliterate(trimmed, isGu: true);
     } else if (lang == 'hi') {
-      final res = _transliterate(trimmed, _knownHindi, _phoneticHindi, _toHindiScriptFallback);
-      return res.trim().isNotEmpty ? res.trim() : trimmed;
+      if (hasGujarati(trimmed)) {
+        return gujaratiToDevanagari(trimmed);
+      }
+      if (hasDevanagari(trimmed)) {
+        return trimmed;
+      }
+      return _liveTransliterate(trimmed, isGu: false);
     }
 
     return trimmed;
   }
 
-  static String _transliterate(
-    String name,
-    Map<String, String> knownMap,
-    Map<String, String> phoneticMap,
-    String Function(String) fallbackFn,
-  ) {
-    if (knownMap.containsKey(name)) {
-      return knownMap[name]!;
-    }
-
-    final words = name.split(RegExp(r'\s+'));
-    final translatedWords = words.map((word) {
-      if (word.isEmpty) return '';
-      if (knownMap.containsKey(word)) {
-        return knownMap[word]!;
-      }
-      final cleanWord = word.replaceAll(RegExp(r'[^\w\.]'), '');
-      if (cleanWord.isEmpty) return word;
-
-      final lower = cleanWord.toLowerCase();
-      if (knownMap.containsKey(cleanWord)) {
-        return knownMap[cleanWord]!;
-      }
-      if (phoneticMap.containsKey(lower)) {
-        return phoneticMap[lower]!;
+  /// Live phonetic transliteration algorithm
+  static String _liveTransliterate(String fullName, {required bool isGu}) {
+    final words = fullName.split(RegExp(r'\s+'));
+    final convertedWords = words.map((w) {
+      if (w.isEmpty) return '';
+      final lower = w.toLowerCase().replaceAll(RegExp(r'[^a-z\.]'), '');
+      if (isGu && _titlesGujarati.containsKey(lower)) {
+        return _titlesGujarati[lower]!;
+      } else if (!isGu && _titlesHindi.containsKey(lower)) {
+        return _titlesHindi[lower]!;
       }
 
-      final fallback = fallbackFn(cleanWord);
-      return fallback.trim().isNotEmpty ? fallback : word;
+      if (isGu && _stemGujarati.containsKey(lower)) {
+        return _stemGujarati[lower]!;
+      } else if (!isGu && _stemHindi.containsKey(lower)) {
+        return _stemHindi[lower]!;
+      }
+
+      return _transliterateSingleWord(w, isGu: isGu);
     }).where((w) => w.isNotEmpty).toList();
 
-    final result = translatedWords.join(' ');
-    return result.trim().isNotEmpty ? result : name;
+    return convertedWords.join(' ');
   }
 
-  static String _toGujaratiScriptFallback(String word) {
-    String res = word.toLowerCase();
-    res = res.replaceAll('sh', 'શ');
-    res = res.replaceAll('ch', 'ચ');
-    res = res.replaceAll('th', 'થ');
-    res = res.replaceAll('dh', 'ધ');
-    res = res.replaceAll('bh', 'ભ');
-    res = res.replaceAll('kh', 'ખ');
-    res = res.replaceAll('gh', 'ઘ');
-    res = res.replaceAll('ph', 'ફ');
-    res = res.replaceAll('aa', 'આ');
-    res = res.replaceAll('ee', 'ઈ');
-    res = res.replaceAll('oo', 'ઊ');
-    res = res.replaceAll('ai', 'ઐ');
-    res = res.replaceAll('au', 'ઔ');
+  static String _transliterateSingleWord(String word, {required bool isGu}) {
+    final s = word.toLowerCase().trim();
+    if (s.isEmpty) return word;
 
-    final map = {
-      'a': 'અ', 'b': 'બ', 'c': 'ક', 'd': 'દ', 'e': 'એ', 'f': 'ફ',
-      'g': 'ગ', 'h': 'હ', 'i': 'ઇ', 'j': 'જ', 'k': 'ક', 'l': 'લ',
-      'm': 'મ', 'n': 'ન', 'o': 'ઓ', 'p': 'પ', 'q': 'ક', 'r': 'ર',
-      's': 'સ', 't': 'ત', 'u': 'ઉ', 'v': 'વ', 'w': 'વ', 'x': 'ક્ષ',
-      'y': 'ય', 'z': 'ઝ',
-    };
+    final virama = isGu ? '\u0ACD' : '\u094D';
+    final aaMatra = isGu ? 'ા' : 'ा';
+
+    final indVowels = isGu
+        ? {
+            'aa': 'આ', 'a': 'અ', 'ee': 'ઈ', 'ii': 'ઈ', 'i': 'ઇ',
+            'oo': 'ઊ', 'uu': 'ઊ', 'u': 'ઉ', 'ai': 'ઐ', 'ay': 'ઐ',
+            'au': 'ઔ', 'ou': 'ઔ', 'e': 'એ', 'o': 'ઓ', 'ri': 'ઋ'
+          }
+        : {
+            'aa': 'आ', 'a': 'अ', 'ee': 'ई', 'ii': 'ई', 'i': 'इ',
+            'oo': 'ऊ', 'uu': 'ऊ', 'u': 'उ', 'ai': 'ऐ', 'ay': 'ऐ',
+            'au': 'औ', 'ou': 'औ', 'e': 'ए', 'o': 'ओ', 'ri': 'ऋ'
+          };
+
+    final depVowels = isGu
+        ? {
+            'aa': 'ા', 'ee': 'ી', 'ii': 'ી', 'i': 'િ',
+            'oo': 'ૂ', 'uu': 'ૂ', 'u': 'ુ', 'ai': 'ૈ', 'ay': 'ૈ',
+            'au': 'ૌ', 'ou': 'ૌ', 'e': 'ે', 'o': 'ો'
+          }
+        : {
+            'aa': 'ा', 'ee': 'ी', 'ii': 'ी', 'i': 'ि',
+            'oo': 'ू', 'uu': 'ू', 'u': 'ु', 'ai': 'ै', 'ay': 'ै',
+            'au': 'ौ', 'ou': 'ौ', 'e': 'े', 'o': 'ो'
+          };
+
+    final consonants = isGu
+        ? {
+            'shh': 'ષ', 'chh': 'છ', 'thh': 'ઠ', 'dhh': 'ઢ', 'kh': 'ખ',
+            'gh': 'ઘ', 'ch': 'ચ', 'jh': 'ઝ', 'th': 'થ', 'dh': 'ધ',
+            'ph': 'ફ', 'bh': 'ભ', 'sh': 'શ', 'k': 'ક', 'g': 'ગ',
+            'c': 'ક', 'j': 'જ', 't': 'ત', 'd': 'દ', 'n': 'ન',
+            'p': 'પ', 'f': 'ફ', 'b': 'બ', 'm': 'મ', 'y': 'ય',
+            'r': 'ર', 'l': 'લ', 'v': 'વ', 'w': 'વ', 's': 'સ',
+            'h': 'હ', 'z': 'ઝ'
+          }
+        : {
+            'shh': 'ष', 'chh': 'छ', 'thh': 'ठ', 'dhh': 'ढ', 'kh': 'ख',
+            'gh': 'घ', 'ch': 'च', 'jh': 'झ', 'th': 'थ', 'dh': 'ध',
+            'ph': 'फ', 'bh': 'भ', 'sh': 'श', 'k': 'क', 'g': 'ग',
+            'c': 'क', 'j': 'ज', 't': 'त', 'd': 'द', 'n': 'न',
+            'p': 'प', 'f': 'फ़', 'b': 'ब', 'm': 'म', 'y': 'य',
+            'r': 'र', 'l': 'ल', 'v': 'व', 'w': 'व', 's': 'स',
+            'h': 'ह', 'z': 'ज़'
+          };
+
+    final kLetter = isGu ? 'ક' : 'क';
+    final shLetter = isGu ? 'ષ' : 'ष';
+    final xCluster = '$kLetter$virama$shLetter';
 
     final buffer = StringBuffer();
-    for (int i = 0; i < res.length; i++) {
-      final char = res[i];
-      buffer.write(map[char] ?? char);
+    int i = 0;
+    bool lastWasConsonant = false;
+
+    while (i < s.length) {
+      // 1. Special 'x' cluster -> k + virama + sh
+      if (s[i] == 'x') {
+        if (lastWasConsonant) buffer.write(virama);
+        buffer.write(xCluster);
+        lastWasConsonant = true;
+        i++;
+        continue;
+      }
+
+      // 2. Multi-char consonants (3, 2, 1)
+      String? cMatch;
+      int cLen = 0;
+      for (final len in [3, 2, 1]) {
+        if (i + len <= s.length) {
+          final sub = s.substring(i, i + len);
+          if (consonants.containsKey(sub)) {
+            cMatch = consonants[sub];
+            cLen = len;
+            break;
+          }
+        }
+      }
+
+      if (cMatch != null) {
+        if (lastWasConsonant) {
+          buffer.write(virama);
+        }
+        buffer.write(cMatch);
+        lastWasConsonant = true;
+        i += cLen;
+        continue;
+      }
+
+      // 3. Vowels (2, 1)
+      String? vMatch;
+      int vLen = 0;
+      for (final len in [2, 1]) {
+        if (i + len <= s.length) {
+          final sub = s.substring(i, i + len);
+          if (depVowels.containsKey(sub) || sub == 'a') {
+            vMatch = sub;
+            vLen = len;
+            break;
+          }
+        }
+      }
+
+      if (vMatch != null) {
+        if (vMatch == 'a') {
+          if (lastWasConsonant) {
+            // Word-final 'a' after a consonant (e.g. Kavita, Pooja, Shloka) gets aa matra
+            if (i == s.length - 1 && s.length > 2) {
+              buffer.write(aaMatra);
+            }
+            // Inherent 'a' - consonant already has inherent vowel
+          } else {
+            buffer.write(indVowels['a']);
+          }
+        } else {
+          if (lastWasConsonant) {
+            buffer.write(depVowels[vMatch]);
+          } else {
+            buffer.write(indVowels[vMatch] ?? '');
+          }
+        }
+        lastWasConsonant = false;
+        i += vLen;
+        continue;
+      }
+
+      // Any other character (e.g. punctuation, symbols)
+      buffer.write(s[i]);
+      lastWasConsonant = false;
+      i++;
     }
+
     return buffer.toString();
   }
 
-  static String _toHindiScriptFallback(String word) {
-    String res = word.toLowerCase();
-    res = res.replaceAll('sh', 'श');
-    res = res.replaceAll('ch', 'च');
-    res = res.replaceAll('th', 'थ');
-    res = res.replaceAll('dh', 'ध');
-    res = res.replaceAll('bh', 'भ');
-    res = res.replaceAll('kh', 'ख');
-    res = res.replaceAll('gh', 'घ');
-    res = res.replaceAll('ph', 'फ');
-    res = res.replaceAll('aa', 'आ');
-    res = res.replaceAll('ee', 'ई');
-    res = res.replaceAll('oo', 'ऊ');
-    res = res.replaceAll('ai', 'ऐ');
-    res = res.replaceAll('au', 'औ');
+  /// Localizes an astrologer's specialization or skills cleanly.
+  static String toLocalizedSpecialization(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return text;
 
-    final map = {
-      'a': 'अ', 'b': 'ब', 'c': 'क', 'd': 'द', 'e': 'ए', 'f': 'फ',
-      'g': 'ग', 'h': 'ह', 'i': 'इ', 'j': 'ज', 'k': 'क', 'l': 'ल',
-      'm': 'म', 'n': 'न', 'o': 'ओ', 'p': 'प', 'q': 'क', 'r': 'र',
-      's': 'स', 't': 'त', 'u': 'उ', 'v': 'व', 'w': 'व', 'x': 'क्ष',
-      'y': 'य', 'z': 'ज़',
-    };
+    final lang = Get.locale?.languageCode ?? 'en';
 
-    final buffer = StringBuffer();
-    for (int i = 0; i < res.length; i++) {
-      final char = res[i];
-      buffer.write(map[char] ?? char);
+    if (lang == 'gu') {
+      if (hasDevanagari(trimmed)) {
+        if (trimmed.contains('—')) {
+          final parts = trimmed.split('—');
+          return devanagariToGujarati(parts.last.trim());
+        }
+        return devanagariToGujarati(trimmed);
+      }
+      final lower = trimmed.toLowerCase();
+      if (_specializationsGujarati.containsKey(lower)) {
+        return _specializationsGujarati[lower]!;
+      }
+      if (trimmed.contains('—')) {
+        final firstPart = trimmed.split('—').first.trim().toLowerCase();
+        if (_specializationsGujarati.containsKey(firstPart)) {
+          return _specializationsGujarati[firstPart]!;
+        }
+      }
+      return trimmed;
+    } else if (lang == 'hi') {
+      if (hasGujarati(trimmed)) {
+        return gujaratiToDevanagari(trimmed);
+      }
+      if (trimmed.contains('—')) {
+        final parts = trimmed.split('—');
+        final lastPart = parts.last.trim();
+        if (hasDevanagari(lastPart)) return lastPart;
+      }
+      final lower = trimmed.toLowerCase();
+      if (_specializationsHindi.containsKey(lower)) {
+        return _specializationsHindi[lower]!;
+      }
+      return trimmed;
+    } else {
+      if (trimmed.contains('—')) {
+        return trimmed.split('—').first.trim();
+      }
+      return trimmed;
     }
-    return buffer.toString();
   }
 
   /// Converts ASCII digits to localized digits based on active language.

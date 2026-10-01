@@ -112,12 +112,15 @@ class ProfilePage extends GetView<ProfileController> {
                       ],
                     ),
                     SizedBox(height: 12.h),
-                    Text(
-                      GujaratiScriptUtils.toGujaratiName(controller.userData['name']?.toString() ?? 'user'.tr),
-                      style: AppTextStyles.displayMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
+                    Obx(() {
+                      final rawName = controller.userData['name']?.toString() ?? 'user'.tr;
+                      return Text(
+                        GujaratiScriptUtils.toGujaratiName(rawName),
+                        style: AppTextStyles.displayMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      );
+                    }),
                     Text(
                       controller.phoneController.text,
                       style: AppTextStyles.bodyMedium.copyWith(
@@ -197,6 +200,11 @@ class ProfilePage extends GetView<ProfileController> {
           Icons.shopping_bag_outlined,
           'shop_orders'.tr,
           () => Get.toNamed(AppRoutes.shopOrders),
+        ),
+        _buildMenuItem(
+          Icons.favorite_border_rounded,
+          'shop_wishlist'.tr,
+          () => Get.toNamed(AppRoutes.wishlist),
         ),
         _buildMenuItem(
           Icons.temple_hindu_outlined,

@@ -33,20 +33,32 @@ class AstrologerUtils {
       return null;
     }
 
-    // 1. Direct top-level map
-    String? foundName = tryMap(astro);
+    String? foundName;
 
-    // 2. Nested personal_details
-    if (foundName == null && astro['personal_details'] is Map) {
+    // 1. Nested personal_details (authoritative astrologer profile name)
+    if (astro['personal_details'] is Map) {
       foundName = tryMap(astro['personal_details'] as Map);
+    }
+
+    // 2. Nested astrologer_id map (e.g. live sessions, calls, or chat history)
+    if (foundName == null && astro['astrologer_id'] is Map) {
+      final astroIdMap = astro['astrologer_id'] as Map;
+      if (astroIdMap['personal_details'] is Map) {
+        foundName = tryMap(astroIdMap['personal_details'] as Map);
+      }
+      if (foundName == null) {
+        foundName = tryMap(astroIdMap);
+      }
     }
 
     // 3. Nested partner map
     if (foundName == null && astro['partner'] is Map) {
       final partner = astro['partner'] as Map;
-      foundName = tryMap(partner);
-      if (foundName == null && partner['personal_details'] is Map) {
+      if (partner['personal_details'] is Map) {
         foundName = tryMap(partner['personal_details'] as Map);
+      }
+      if (foundName == null) {
+        foundName = tryMap(partner);
       }
     }
 
@@ -55,13 +67,9 @@ class AstrologerUtils {
       foundName = tryMap(astro['user'] as Map);
     }
 
-    // 5. Nested astrologer_id map (e.g. live sessions or calls)
-    if (foundName == null && astro['astrologer_id'] is Map) {
-      final astroIdMap = astro['astrologer_id'] as Map;
-      foundName = tryMap(astroIdMap);
-      if (foundName == null && astroIdMap['personal_details'] is Map) {
-        foundName = tryMap(astroIdMap['personal_details'] as Map);
-      }
+    // 5. Direct top-level map (legacy fallback)
+    if (foundName == null) {
+      foundName = tryMap(astro);
     }
 
     // If a non-empty name string was found from ANY structure:
@@ -73,6 +81,41 @@ class AstrologerUtils {
     // Fallback if no name exists anywhere in JSON
     final fallback = 'astrologer'.tr;
     return (fallback.isNotEmpty && fallback != 'astrologer') ? fallback : 'જ્યોતિષી';
+  }
+
+  /// Safely extracts the astrologer's specialization or skills and localizes it cleanly.
+  static String getLocalizedAstrologerSpecialization(dynamic rawData) {
+    if (rawData is! Map) {
+      return 'astrologer'.tr;
+    }
+    final astro = Map<String, dynamic>.from(rawData);
+
+    // 1. Check skills list
+    final skills = astro['skills'];
+    if (skills is List && skills.isNotEmpty) {
+      final skillStr = skills.first.toString().trim();
+      if (skillStr.isNotEmpty) {
+        return NameTransliterationUtils.toLocalizedSpecialization(skillStr);
+      }
+    }
+
+    // 2. Check specialization fields
+    final candidateKeys = [
+      'specialization',
+      'skill',
+      'category',
+      'primary_skill',
+      'main_skill',
+    ];
+
+    for (final key in candidateKeys) {
+      final val = astro[key]?.toString().trim();
+      if (val != null && val.isNotEmpty && val != 'null' && val != 'undefined') {
+        return NameTransliterationUtils.toLocalizedSpecialization(val);
+      }
+    }
+
+    return 'astrologer'.tr;
   }
 
   /// Safely extracts the astrologer's bio/about text from any nested API JSON structure (including other_details.long_bio, biography, etc.).
@@ -140,5 +183,63 @@ class AstrologerUtils {
     }
 
     return 'no_description'.tr;
+  }
+
+  /// Safely extracts the astrologer's profile image from any nested API JSON structure.
+  static String getAstrologerImage(dynamic rawData) {
+    if (rawData is! Map) return '';
+    final astro = Map<String, dynamic>.from(rawData);
+
+    final candidateKeys = [
+      'profile_pic',
+      'profile_image',
+      'profilePic',
+      'profileImage',
+      'image',
+      'avatar',
+      'photo',
+    ];
+
+    String? tryMap(Map map) {
+      for (final key in candidateKeys) {
+        final val = map[key]?.toString().trim();
+        if (val != null && val.isNotEmpty && val != 'null' && val != 'undefined') {
+          return val;
+        }
+      }
+      return null;
+    }
+
+    // 1. Nested personal_details
+    if (astro['personal_details'] is Map) {
+      final img = tryMap(astro['personal_details'] as Map);
+      if (img != null) return img;
+    }
+
+    // 2. Nested astrologer_id map
+    if (astro['astrologer_id'] is Map) {
+      final aMap = astro['astrologer_id'] as Map;
+      if (aMap['personal_details'] is Map) {
+        final img = tryMap(aMap['personal_details'] as Map);
+        if (img != null) return img;
+      }
+      final img = tryMap(aMap);
+      if (img != null) return img;
+    }
+
+    // 3. Nested partner map
+    if (astro['partner'] is Map) {
+      final pMap = astro['partner'] as Map;
+      if (pMap['personal_details'] is Map) {
+        final img = tryMap(pMap['personal_details'] as Map);
+        if (img != null) return img;
+      }
+      final img = tryMap(pMap);
+      if (img != null) return img;
+    }
+
+    // 4. Root
+    final img = tryMap(astro);
+    return img ?? '';
   }
 }
