@@ -1,12 +1,12 @@
 class AppConstants {
   // App Info
   static const String appName = 'Vedikvani Wellness';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.5';
+  static const String androidPackageName = 'com.vadikvani';
 
   // API Configuration
-  // static const String baseUrl = 'http://10.0.2.2:3050';
-  //static String baseUrl = 'http://192.168.1.6:3050';
   static const String baseUrl = 'https://api.vedikvani.com/';
+  // static const String baseUrl = 'http://192.168.29.74:3050/';
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
   static const String razorpayKeyId = 'rzp_live_T690exIdAcKXHs';

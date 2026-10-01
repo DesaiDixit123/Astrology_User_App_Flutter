@@ -1,6 +1,7 @@
 class ApiConstants {
   // ── Base URL (Dynamically Resolvable) ─────
   static String baseUrl = 'https://api.vedikvani.com';
+  // static String baseUrl = 'http://192.168.29.74:3050';
 
   static void updateBaseUrl(String url) {
     var cleaned = url.trim();
@@ -14,15 +15,48 @@ class ApiConstants {
     }
   }
 
-  static const String imageBaseUrl =
-      'https://hrms-khushi.s3.ap-south-1.amazonaws.com';
+  // ── Image Base URL (Dynamically Resolves to Local Backend or CDN) ──
+  static String get imageBaseUrl => baseUrl;
 
   static String resolveImage(String path) {
     if (path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    return '$imageBaseUrl/$path'
-        .replaceAll('//', '/')
-        .replaceFirst('https:/', 'https://');
+
+    // Clean nested/concatenated URLs if present
+    if (path.contains('/http://') || path.contains('/https://')) {
+      final idx = path.indexOf('http', 1);
+      if (idx != -1) {
+        path = path.substring(idx);
+      }
+    }
+
+    if (path.startsWith('http://api.vedikvani.com')) {
+      path = path.replaceFirst('http://api.vedikvani.com', 'https://api.vedikvani.com');
+    }
+
+    // Since the AWS S3 bucket hrms-khushi is private (403),
+    // all S3 assets are mirrored in the local backend's /Common/ or /public/ directory.
+    if (path.contains('hrms-khushi.s3.ap-south-1.amazonaws.com')) {
+      path = path.replaceAll('https://hrms-khushi.s3.ap-south-1.amazonaws.com', baseUrl);
+    }
+
+    // Replace localhost or 127.0.0.1 with actual phone-reachable baseUrl host
+    if (path.contains('localhost') || path.contains('127.0.0.1')) {
+      final uri = Uri.tryParse(baseUrl);
+      if (uri != null) {
+        path = path.replaceAll('https://localhost:3050', baseUrl)
+                   .replaceAll('http://localhost:3050', baseUrl)
+                   .replaceAll('https://localhost', 'http://${uri.host}:${uri.port}')
+                   .replaceAll('http://localhost', 'http://${uri.host}:${uri.port}')
+                   .replaceAll('localhost', uri.host)
+                   .replaceAll('127.0.0.1', uri.host);
+      }
+    }
+
+    if (path.startsWith('http')) {
+      return path;
+    }
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return '$baseUrl/$cleanPath';
   }
 
   // ── Customer Auth ─────────────────────────────────────────
@@ -38,6 +72,9 @@ class ApiConstants {
 
   // ── Astrologers ───────────────────────────────────────────
   static const String astrologers = '/customer/astrologers';
+  static const String aiAstrologers = '/customer/astrologers/ai';
+  static const String aiChatConfig = '/customer/ai-chat/config';
+  static const String aiChatEligibility = '/customer/ai-chat/eligibility';
   static const String topAstrologers = '/customer/astrologers/top';
   static const String liveAstrologers = '/customer/astrologers/live';
   static const String follow = '/customer/follow';
@@ -136,4 +173,5 @@ class ApiConstants {
   static const String locationCountries = '/customer/location/countries';
   static const String locationStates = '/customer/location/states';
   static const String locationCities = '/customer/location/cities';
+  static const String appVersionCheck = '/customer/app-version/check';
 }

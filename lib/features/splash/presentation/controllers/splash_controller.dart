@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/app_update_service.dart';
 
 class SplashController extends GetxController {
   @override
@@ -13,6 +14,13 @@ class SplashController extends GetxController {
   void _navigateToNext() async {
     try {
       await Future.delayed(const Duration(seconds: 2));
+
+      // ── Check Mandatory App Update ──────────────────────────
+      final needsUpdate = await AppUpdateService.checkForUpdate();
+      if (needsUpdate) {
+        // App is locked until updated on Play Store. Do not proceed!
+        return;
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final token =
