@@ -22,12 +22,11 @@ class AppUpdateService {
         },
       );
 
-      final data = response.data;
-      if (data == null || data['Data'] == null) {
+      if (response == null || response['Data'] == null) {
         return false;
       }
 
-      final updateData = data['Data'] as Map<String, dynamic>;
+      final updateData = response['Data'] as Map<String, dynamic>;
       final bool forceUpdate = updateData['force_update'] == true;
       final String latestVersion = (updateData['latest_version'] ?? '').toString();
       final String marketUrl = (updateData['play_store_url'] ?? '').toString();
