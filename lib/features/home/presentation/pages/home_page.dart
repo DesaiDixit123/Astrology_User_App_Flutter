@@ -6,6 +6,7 @@ import 'package:astrology_user/shared/widgets/glass_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 import '../../../../core/utils/gujarati_script_utils.dart';
 import '../../../../core/utils/name_transliteration_utils.dart';
 import '../../../../core/utils/astrologer_utils.dart';
@@ -13,6 +14,7 @@ import '../../../../config/routes/app_routes.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../dashboard/presentation/controllers/dashboard_controller.dart';
 import '../../../live/presentation/controllers/live_controller.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/home_controller.dart';
 
 class HomePage extends GetView<HomeController> {
@@ -333,10 +335,10 @@ class HomePage extends GetView<HomeController> {
         'color': [const Color(0xFFD97706), const Color(0xFFF59E0B)],
       },
       {
-        'icon': Icons.favorite_rounded,
-        'label': 'matchmaking_title'.tr,
-        'route': AppRoutes.matchmaking,
-        'color': [const Color(0xFFDC2626), const Color(0xFFEF4444)],
+        'icon': Icons.stars_rounded,
+        'label': 'horoscope_title'.tr,
+        'route': AppRoutes.horoscope,
+        'color': [const Color(0xFF2563EB), const Color(0xFF3B82F6)],
       },
       {
         'icon': Icons.calendar_month_rounded,
@@ -345,10 +347,10 @@ class HomePage extends GetView<HomeController> {
         'color': [const Color(0xFF7C3AED), const Color(0xFF8B5CF6)],
       },
       {
-        'icon': Icons.stars_rounded,
-        'label': 'horoscope_title'.tr,
-        'route': AppRoutes.horoscope,
-        'color': [const Color(0xFF2563EB), const Color(0xFF3B82F6)],
+        'icon': Icons.date_range_rounded,
+        'label': 'calendar_title'.tr,
+        'route': AppRoutes.calendar,
+        'color': [const Color(0xFF0D9488), const Color(0xFF14B8A6)],
       },
       {
         'icon': Icons.temple_hindu,
@@ -512,7 +514,7 @@ class HomePage extends GetView<HomeController> {
 
     // Use live stream thumbnail first, fall back to profile_pic
     final thumbnail = astro['thumbnail']?.toString() ?? '';
-    final profilePic = astro['profile_pic']?.toString() ?? '';
+    final profilePic = AstrologerUtils.getAstrologerImage(astro);
     final imageUrl = thumbnail.isNotEmpty ? thumbnail : profilePic;
 
     final streamId = astro['_id']?.toString() ?? '';
@@ -601,97 +603,336 @@ class HomePage extends GetView<HomeController> {
   }
 
   Widget _buildTopAstrologersSection() {
-    if (controller.topAstrologers.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'top_astrologers'.tr,
-                style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800),
-              ),
-              TextButton(
-                onPressed: () => Get.toNamed(AppRoutes.astrologerList),
-                child: Text(
-                  'view_all'.tr,
-                  style: AppTextStyles.buttonSmall.copyWith(
-                    color: AppColors.primary,
+    return Obx(() {
+      final isAiSelected = controller.selectedAstrologerType.value == 'ai';
+      final list = isAiSelected ? controller.aiAstrologers : controller.topAstrologers;
+
+      if (list.isEmpty && !isAiSelected) return const SizedBox.shrink();
+
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'top_astrologers'.tr,
+                  style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.w800),
+                ),
+                TextButton(
+                  onPressed: () => Get.toNamed(AppRoutes.astrologerList),
+                  child: Text(
+                    'view_all'.tr,
+                    style: AppTextStyles.buttonSmall.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            // Segmented switch: Vedic Astrologers vs. AI Astrologers
+            Container(
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F1F5),
+                borderRadius: BorderRadius.circular(14.r),
               ),
-            ],
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => controller.selectedAstrologerType.value = 'vedic',
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: !isAiSelected ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '🌟 ${'vedic_astrologers'.tr}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: !isAiSelected ? Colors.white : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => controller.selectedAstrologerType.value = 'ai',
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: isAiSelected ? AppColors.secondary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '🤖 ${'ai_astrologers'.tr}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isAiSelected ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                                decoration: BoxDecoration(
+                                  color: isAiSelected ? Colors.white.withValues(alpha: 0.25) : AppColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6.r),
+                                ),
+                                child: Text(
+                                  '${GujaratiScriptUtils.toGujaratiNumber(6)} AI',
+                                  style: TextStyle(
+                                    color: isAiSelected ? Colors.white : AppColors.primary,
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12.h),
+            ...list.map(
+              (astro) => _buildAstrologerRow(Map<String, dynamic>.from(astro as Map)),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildAstrologerRow(Map<String, dynamic> astro) {
+    final bool isAi = astro['is_ai'] == true || (astro['_id']?.toString().startsWith('6aa00000000000000000000') ?? false);
+    final gender = astro['gender']?.toString() ?? '';
+    final profilePic = AstrologerUtils.getAstrologerImage(astro);
+    final rating = astro['rating'] ?? 5.0;
+
+    return PremiumCard(
+      margin: EdgeInsets.only(bottom: 14.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      child: Row(
+        children: [
+          ClipOval(
+            child: SizedBox(
+              width: 54.r,
+              height: 54.r,
+              child: isAi
+                  ? _buildAiAvatar(astro, 54.r)
+                  : (profilePic.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: ApiConstants.resolveImage(profilePic),
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            child: const Icon(Icons.person, color: AppColors.primary),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          child: const Icon(Icons.person, color: AppColors.primary),
+                        )),
+            ),
           ),
-          SizedBox(height: 12.h),
-          ...controller.topAstrologers.map(
-            (astro) => _buildAstrologerRow(astro as Map<String, dynamic>),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AstrologerUtils.getLocalizedAstrologerName(astro),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isAi)
+                      Container(
+                        margin: EdgeInsets.only(left: 4.w),
+                        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                        decoration: BoxDecoration(
+                          color: (gender == 'boy' ? Colors.blue : Colors.purple).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          gender == 'boy' ? 'boy_tag'.tr : 'girl_tag'.tr,
+                          style: TextStyle(
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.bold,
+                            color: gender == 'boy' ? Colors.blue[800] : Colors.purple[800],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                SizedBox(height: 3.h),
+                Row(
+                  children: [
+                    Icon(Icons.star, color: AppColors.gold, size: 13.sp),
+                    SizedBox(width: 3.w),
+                    Text(
+                      GujaratiScriptUtils.toGujaratiNumber(rating),
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                    if (isAi) ...[
+                      SizedBox(width: 6.w),
+                      Obx(() {
+                        final isFree = controller.isAiFreeAvailable.value;
+                        final price = controller.aiChatPrice.value;
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                          decoration: BoxDecoration(
+                            color: isFree ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Text(
+                            isFree ? 'FREE' : '₹${GujaratiScriptUtils.toGujaratiNumber(price)}',
+                            style: TextStyle(
+                              color: isFree ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          ElevatedButton(
+            onPressed: () =>
+                Get.toNamed(AppRoutes.astrologerDetail, arguments: astro),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: isAi ? AppColors.secondary : AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            child: Text(
+              'consult'.tr,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAstrologerRow(Map<String, dynamic> astro) {
-    final profilePic = (astro['profilePic'] ?? astro['profile_pic'] ?? astro['profile_image'] ?? (astro['personal_details'] is Map ? astro['personal_details']['profile_image'] : ''))?.toString() ?? '';
-    final rating = astro['rating'] ?? 5.0;
+  Widget _buildAiAvatar(Map<String, dynamic> astro, double size) {
+    final name = (astro['name'] ?? '').toString();
 
-    return PremiumCard(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(12.w),
-      child: Row(
+    List<Color> gradientColors;
+    IconData iconData;
+    IconData faceIcon;
+
+    if (name.contains('Aarav')) {
+      gradientColors = const [Color(0xFFFF9933), Color(0xFFFF5722)];
+      iconData = Icons.auto_awesome;
+      faceIcon = Icons.face;
+    } else if (name.contains('Rohan')) {
+      gradientColors = const [Color(0xFF1E3C72), Color(0xFF2A5298)];
+      iconData = Icons.insights_rounded;
+      faceIcon = Icons.face;
+    } else if (name.contains('Gautam')) {
+      gradientColors = const [Color(0xFF00796B), Color(0xFF004D40)];
+      iconData = Icons.diamond_outlined;
+      faceIcon = Icons.face;
+    } else if (name.contains('Ragini')) {
+      gradientColors = const [Color(0xFFE91E63), Color(0xFFFF6090)];
+      iconData = Icons.spa_rounded;
+      faceIcon = Icons.face_3;
+    } else if (name.contains('Shloka')) {
+      gradientColors = const [Color(0xFF7B1FA2), Color(0xFF4A148C)];
+      iconData = Icons.style_rounded;
+      faceIcon = Icons.face_3;
+    } else {
+      gradientColors = const [Color(0xFFD81B60), Color(0xFF880E4F)];
+      iconData = Icons.visibility_rounded;
+      faceIcon = Icons.face_3;
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors[0].withValues(alpha: 0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          CircleAvatar(
-            radius: 30.r,
-            backgroundImage: profilePic.isNotEmpty
-                ? NetworkImage(ApiConstants.resolveImage(profilePic))
-                : null,
-            child: profilePic.isEmpty ? const Icon(Icons.person) : null,
+          Icon(
+            faceIcon,
+            color: Colors.white,
+            size: size * 0.58,
           ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AstrologerUtils.getLocalizedAstrologerName(astro),
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4.h),
-                Row(
-                  children: [
-                    Icon(Icons.star, color: AppColors.gold, size: 14.sp),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '$rating',
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Get.toNamed(AppRoutes.astrologerDetail, arguments: astro),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
+          Positioned(
+            bottom: 2,
+            right: 2,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Icon(
+                iconData,
+                color: const Color(0xFFFFD54F),
+                size: size * 0.22,
               ),
             ),
-            child: Text('consult'.tr),
           ),
         ],
       ),
@@ -821,7 +1062,7 @@ class HomePage extends GetView<HomeController> {
           ),
           SizedBox(height: 16.h),
           SizedBox(
-            height: 250.h,
+            height: 275.h,
             child: Obx(() {
               final List blogList = controller.blogs.isNotEmpty
                   ? controller.blogs.toList()
@@ -837,15 +1078,18 @@ class HomePage extends GetView<HomeController> {
                       },
                     ];
 
+              final isSingle = blogList.length == 1;
+
               return ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 itemCount: blogList.length,
                 itemBuilder: (context, index) {
                   final blog = blogList[index];
                   final title = blog['title'] ?? 'astrology_insights'.tr;
                   final image = blog['image'] ?? '';
-                  final imageUrl = ApiConstants.resolveImage(image);
+                  final imageUrl = ApiConstants.resolveImage(image.toString());
                   String dateStr = 'Mar 17, 2026';
                   if (blog['createdAt'] != null) {
                     try {
@@ -854,9 +1098,13 @@ class HomePage extends GetView<HomeController> {
                     } catch (_) {}
                   }
 
+                  final cardWidth = isSingle
+                      ? (MediaQuery.of(context).size.width - 32.w)
+                      : 295.w;
+
                   return Container(
-                    width: 240.w,
-                    margin: EdgeInsets.only(right: 16.w),
+                    width: cardWidth,
+                    margin: EdgeInsets.only(right: isSingle ? 0 : 16.w),
                     child: PremiumCard(
                       onTap: () => Get.toNamed(AppRoutes.blogDetail, arguments: blog),
                       padding: EdgeInsets.zero,
@@ -865,18 +1113,18 @@ class HomePage extends GetView<HomeController> {
                         children: [
                           Stack(
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-                                child: Image.network(
-                                  imageUrl.isNotEmpty ? imageUrl : 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600',
-                                  height: 130.h,
+                              SizedBox(
+                                height: 145.h,
+                                width: double.infinity,
+                                child: AppNetworkImage(
+                                  url: imageUrl.isNotEmpty
+                                      ? imageUrl
+                                      : 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600',
+                                  height: 145.h,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    height: 130.h,
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    child: Icon(Icons.article_outlined, color: AppColors.primary, size: 36.sp),
-                                  ),
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                                  fallbackIcon: Icons.article_outlined,
                                 ),
                               ),
                               Positioned(
