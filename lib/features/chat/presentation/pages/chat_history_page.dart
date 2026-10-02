@@ -1,9 +1,9 @@
-import 'package:astrology_user/core/utils/gujarati_script_utils.dart';
 import '../../../../core/utils/astrologer_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../controllers/chat_history_controller.dart';
@@ -109,10 +109,25 @@ class ChatHistoryPage extends GetView<ChatHistoryController> {
   }
 
   Widget _buildChatTile(Map session) {
-    final partner = session['astrologer_id'] ?? {};
-    final personalDetails = partner['personal_details'] as Map? ?? {};
-    final name = AstrologerUtils.getLocalizedAstrologerName(session);
-    final rawImage = personalDetails['profile_image'] as String? ?? partner['profile_pic'] as String? ?? '';
+    final partner = session['astrologer_id'];
+    Map personalDetails = {};
+    if (partner is Map && partner['personal_details'] is Map) {
+      personalDetails = partner['personal_details'];
+    }
+
+    String name = '';
+    if (partner is Map) {
+      name = AstrologerUtils.getLocalizedAstrologerName(partner);
+    }
+    if (name.isEmpty || name == 'Astrologers' || name == 'Astrologer' || name == 'જ્યોતિષીઓ') {
+      name = AstrologerUtils.getLocalizedAstrologerName(session);
+    }
+    if (name.isEmpty || name == 'Astrologers' || name == 'Astrologer' || name == 'જ્યોતિષીઓ') {
+      name = 'પંડિત નરસિંહભાઈ પટેલ';
+    }
+
+    final rawImage = personalDetails['profile_image'] as String? ??
+        (partner is Map ? (partner['profile_pic'] as String? ?? partner['profile_image'] as String? ?? '') : '');
     final imageUrl = ApiConstants.resolveImage(rawImage);
 
     final cleanPartner = {
@@ -122,8 +137,13 @@ class ChatHistoryPage extends GetView<ChatHistoryController> {
 
     final dateRaw = session['createdAt'] as String?;
     String dateText = 'Recent';
-    if (dateRaw != null && dateRaw.contains('T')) {
-      dateText = dateRaw.split('T').first;
+    if (dateRaw != null) {
+      try {
+        final dt = DateTime.parse(dateRaw).toLocal();
+        dateText = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+      } catch (_) {
+        dateText = dateRaw.contains('T') ? dateRaw.split('T').first : dateRaw;
+      }
     }
 
     return ListTile(

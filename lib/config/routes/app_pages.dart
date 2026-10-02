@@ -28,6 +28,7 @@ import '../../features/services/presentation/pages/kundli_page.dart';
 import '../../features/services/presentation/pages/horoscope_page.dart';
 import '../../features/services/presentation/pages/horoscope_detail_page.dart';
 import '../../features/services/presentation/pages/panchang_page.dart';
+import '../../features/services/presentation/pages/calendar_page.dart';
 import '../../features/services/presentation/pages/matchmaking_page.dart';
 import '../../features/services/presentation/controllers/service_controller.dart';
 import '../../features/services/presentation/controllers/kundli_controller.dart';
@@ -35,6 +36,7 @@ import '../../features/services/presentation/controllers/matchmaking_controller.
 import '../../features/shop/presentation/pages/shop_page.dart';
 import '../../features/shop/presentation/pages/product_detail_page.dart';
 import '../../features/shop/presentation/pages/cart_page.dart';
+import '../../features/shop/presentation/pages/wishlist_page.dart';
 import '../../features/epooja/presentation/pages/epooja_page.dart';
 import '../../features/epooja/presentation/pages/puja_details_page.dart';
 import '../../features/epooja/presentation/pages/select_astrologer_page.dart';
@@ -54,6 +56,7 @@ import '../../features/shop/presentation/pages/shop_order_history_page.dart';
 import '../../features/shop/presentation/pages/shop_order_detail_page.dart';
 import '../../features/calls/presentation/pages/voice_call_page.dart';
 import '../../features/calls/presentation/pages/video_call_page.dart';
+import '../../features/calls/presentation/pages/ai_voice_assistant_page.dart';
 import '../../features/calls/presentation/controllers/call_controller.dart';
 import '../../features/chat/presentation/pages/chat_history_page.dart';
 import '../../features/chat/presentation/controllers/chat_history_controller.dart';
@@ -214,6 +217,10 @@ class AppPages {
       }),
     ),
     GetPage(
+      name: AppRoutes.calendar,
+      page: () => const CalendarPage(),
+    ),
+    GetPage(
       name: AppRoutes.matchmaking,
       page: () => const MatchmakingPage(),
       binding: BindingsBuilder(() {
@@ -232,6 +239,15 @@ class AppPages {
       page: () => const ProductDetailPage(),
     ),
     GetPage(name: AppRoutes.cart, page: () => const CartPage()),
+    GetPage(
+      name: AppRoutes.wishlist,
+      page: () => const WishlistPage(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<ShopController>()) {
+          Get.lazyPut<ShopController>(() => ShopController());
+        }
+      }),
+    ),
     GetPage(
       name: AppRoutes.epooja,
       page: () => const EPoojaPage(),
@@ -358,6 +374,10 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.put<CallController>(CallController());
       }),
+    ),
+    GetPage(
+      name: AppRoutes.aiVoiceAssistant,
+      page: () => const AIVoiceAssistantPage(),
     ),
     GetPage(
       name: AppRoutes.pujaHistory,

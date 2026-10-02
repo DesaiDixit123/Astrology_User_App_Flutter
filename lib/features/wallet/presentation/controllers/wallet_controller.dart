@@ -133,7 +133,7 @@ class WalletController extends GetxController {
       'description': 'Wallet Recharge',
       'prefill': {
         'contact': _userPhone.isNotEmpty ? _userPhone : '9904755099',
-        'email': _userEmail.isNotEmpty ? _userEmail : 'admin@thekhushiempire.com',
+        'email': _userEmail.isNotEmpty ? _userEmail : 'support@vedikvani.com',
       },
       'theme': {'color': '#E65100'},
       'retry': {'enabled': true, 'max_count': 1},

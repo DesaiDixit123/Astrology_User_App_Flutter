@@ -72,6 +72,9 @@ Future<void> main() async {
 }
 
 void _resolveBaseUrlAsync() {
+  if (ApiConstants.baseUrl.startsWith('https://')) {
+    return; // Using live production URL
+  }
   Future.microtask(() async {
     try {
       if (await _checkIpPort(ApiConstants.baseUrl)) {

@@ -1092,7 +1092,7 @@ class _PujaCheckoutPageState extends State<PujaCheckoutPage> {
         'description': widget.puja.title,
         'prefill': {
           'contact': _phoneController.text.isNotEmpty ? _phoneController.text : '9904755099',
-          'email': 'admin@thekhushiempire.com',
+          'email': 'support@vedikvani.com',
         },
         'theme': {'color': '#E65100'},
         'retry': {'enabled': true, 'max_count': 1},

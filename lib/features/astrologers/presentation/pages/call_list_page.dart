@@ -20,10 +20,9 @@ class CallListPage extends GetView<CallHistoryController> {
   String? _astrologerImage(Map<String, dynamic> session) {
     final astrologer = session['astrologer_id'];
     if (astrologer is Map) {
-      final image =
-          astrologer['profile_pic'] ?? astrologer['profile_image'] ?? '';
-      if (image != null && image.toString().isNotEmpty) {
-        return ApiConstants.resolveImage(image.toString());
+      final image = AstrologerUtils.getAstrologerImage(astrologer);
+      if (image.isNotEmpty) {
+        return ApiConstants.resolveImage(image);
       }
     }
     return null;

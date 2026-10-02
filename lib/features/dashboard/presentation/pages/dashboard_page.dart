@@ -1,7 +1,6 @@
 import 'package:astrology_user/core/theme/app_colors.dart';
 import 'package:astrology_user/shared/widgets/premium_nav.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../live/presentation/pages/live_tab_page.dart';
@@ -26,7 +25,12 @@ class DashboardPage extends GetView<DashboardController> {
     return Scaffold(
       extendBody: true, // Crucial for floating navbar
       backgroundColor: AppColors.background,
-      body: Obx(() => pages[controller.currentIndex.value]),
+      body: Obx(
+        () => IndexedStack(
+          index: controller.currentIndex.value,
+          children: pages,
+        ),
+      ),
       bottomNavigationBar: Obx(
         () => PremiumBottomNav(
           currentIndex: controller.currentIndex.value,

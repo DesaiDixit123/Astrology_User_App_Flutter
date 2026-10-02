@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../config/routes/app_routes.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/utils/astrologer_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/astrologer_controller.dart';
 import 'astrologer_detail_page.dart';
 
@@ -71,7 +74,7 @@ class _FollowingPageState extends State<FollowingPage> {
             final specialization = (skillsList is List && skillsList.isNotEmpty)
                 ? skillsList.first.toString()
                 : (astro['specialization']?.toString() ?? 'Vedic Astrologer');
-            final profilePic = astro['profilePic'] ?? astro['profile_pic'];
+            final profilePic = AstrologerUtils.getAstrologerImage(astro);
             final id = (astro['_id'] ?? astro['id'])?.toString() ?? '';
 
             return Container(
@@ -88,15 +91,28 @@ class _FollowingPageState extends State<FollowingPage> {
               ),
               child: ListTile(
                 contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                leading: CircleAvatar(
-                  radius: 28.r,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  backgroundImage: (profilePic != null && profilePic.toString().isNotEmpty)
-                      ? NetworkImage(profilePic.toString())
-                      : null,
-                  child: (profilePic == null || profilePic.toString().isEmpty)
-                      ? Icon(Icons.person, color: AppColors.primary, size: 28.sp)
-                      : null,
+                leading: ClipOval(
+                  child: SizedBox(
+                    width: 56.r,
+                    height: 56.r,
+                    child: profilePic.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: ApiConstants.resolveImage(profilePic),
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              child: Icon(Icons.person, color: AppColors.primary, size: 28.sp),
+                            ),
+                          )
+                        : Container(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            child: Icon(Icons.person, color: AppColors.primary, size: 28.sp),
+                          ),
+                  ),
                 ),
                 title: Text(name, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
                 subtitle: Text(specialization, style: AppTextStyles.bodySmall.copyWith(color: Colors.grey[600])),

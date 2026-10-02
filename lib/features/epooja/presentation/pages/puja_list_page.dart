@@ -6,6 +6,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import 'package:astrology_user/features/services/data/models/puja_model.dart';
 import 'package:astrology_user/features/services/presentation/controllers/puja_controller.dart';
 import './puja_details_page.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 class PujaListPage extends StatefulWidget {
   final PujaCategory category;
@@ -74,6 +75,7 @@ class _PujaListPageState extends State<PujaListPage> {
         Get.to(() => PujaDetailsPage(pujaId: puja.id));
       },
       child: Container(
+        height: 118.h,
         margin: EdgeInsets.only(bottom: 16.h),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -86,62 +88,71 @@ class _PujaListPageState extends State<PujaListPage> {
             ),
           ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 100.w,
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.horizontal(left: Radius.circular(20.r)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 110.w,
+              height: 118.h,
+              child: ClipRRect(
+                borderRadius: BorderRadius.horizontal(left: Radius.circular(20.r)),
+                child: AppNetworkImage(
+                  url: puja.fullImageUrl,
+                  width: 110.w,
+                  height: 118.h,
+                  fit: BoxFit.cover,
+                  fallbackIcon: Icons.temple_hindu,
                 ),
-                child: (puja.fullImageUrl.isNotEmpty)
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.horizontal(left: Radius.circular(20.r)),
-                        child: Image.network(puja.fullImageUrl, fit: BoxFit.cover),
-                      )
-                    : Icon(Icons.temple_hindu, color: Colors.orange, size: 40.sp),
               ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(12.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        puja.title,
-                        style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        puja.subtitle,
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Spacer(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: 14.sp, color: AppColors.textHint),
-                              SizedBox(width: 4.w),
-                              Text(puja.place, style: AppTextStyles.caption),
-                            ],
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          puja.title,
+                          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (puja.subtitle.isNotEmpty) ...[
+                          SizedBox(height: 4.h),
+                          Text(
+                            puja.subtitle,
+                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 14.sp, color: AppColors.primary),
                         ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 14.sp, color: AppColors.textHint),
+                            SizedBox(width: 4.w),
+                            Text(
+                              puja.place.isNotEmpty ? puja.place : 'Temple / Home',
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                        Icon(Icons.arrow_forward_ios, size: 14.sp, color: AppColors.primary),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -10,7 +10,7 @@ class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
   static const String supportPhone = '9904755099';
-  static const String supportEmail = 'admin@thekhushiempire.com';
+  static const String supportEmail = 'support@vedikvani.com';
 
   Future<void> _makePhoneCall() async {
     final Uri phoneUri = Uri(scheme: 'tel', path: supportPhone);
@@ -231,7 +231,7 @@ class HelpSupportPage extends StatelessWidget {
       {
         'question': 'How can I contact customer support?',
         'answer':
-            'You can call us directly at +91 9904755099 or email us at admin@thekhushiempire.com.',
+            'You can call us directly at +91 9904755099 or email us at support@vedikvani.com.',
       },
       {
         'question': 'Are my consultations private?',

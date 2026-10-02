@@ -15,40 +15,48 @@ class ChatHistoryDetailPage extends GetView<ChatHistoryDetailController> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        title: Obx(() => Row(
-          children: [
-            CircleAvatar(
-              radius: 18.r,
-              backgroundColor: Colors.white,
-              backgroundImage: controller.partner['profile_pic'] != null && controller.partner['profile_pic'].isNotEmpty
-                  ? NetworkImage(controller.partner['profile_pic'])
-                  : null,
-              child: (controller.partner['profile_pic'] == null || controller.partner['profile_pic'].isEmpty)
-                  ? const Icon(Icons.person, color: Colors.grey, size: 18)
-                  : null,
-            ),
-            SizedBox(width: 10.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  controller.partner['name'] ?? 'Astrologer',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+        title: Obx(() {
+          final partnerPic = controller.partner['profile_pic']?.toString() ?? '';
+          final rawName = controller.partner['name']?.toString() ?? '';
+          final displayName = (rawName.isNotEmpty && rawName != 'Astrologers' && rawName != 'Astrologer')
+              ? rawName
+              : 'astrologer'.tr;
+
+          return Row(
+            children: [
+              CircleAvatar(
+                radius: 18.r,
+                backgroundColor: Colors.white24,
+                backgroundImage: partnerPic.isNotEmpty
+                    ? CachedNetworkImageProvider(partnerPic)
+                    : null,
+                child: partnerPic.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                    : null,
+              ),
+              SizedBox(width: 10.w),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                Text(
-                  'Chat History',
-                  style: AppTextStyles.caption.copyWith(
-                    color: Colors.white70,
-                    fontSize: 11.sp,
+                  Text(
+                    'chat_history_title'.tr,
+                    style: AppTextStyles.caption.copyWith(
+                      color: Colors.white70,
+                      fontSize: 11.sp,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        )),
+                ],
+              ),
+            ],
+          );
+        }),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {

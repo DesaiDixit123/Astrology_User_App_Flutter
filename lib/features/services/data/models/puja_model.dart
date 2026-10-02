@@ -15,11 +15,7 @@ class PujaCategory {
     this.description,
   });
 
-  String get fullImageUrl {
-    if (image == null || image!.isEmpty) return '';
-    if (image!.startsWith('http')) return image!;
-    return '${ApiConstants.imageBaseUrl}/$image';
-  }
+  String get fullImageUrl => ApiConstants.resolveImage(image ?? '');
 
   factory PujaCategory.fromJson(Map<String, dynamic> json) {
     return PujaCategory(
@@ -49,11 +45,7 @@ class PujaSubCategory {
     this.description,
   });
 
-  String get fullImageUrl {
-    if (image == null || image!.isEmpty) return '';
-    if (image!.startsWith('http')) return image!;
-    return '${ApiConstants.imageBaseUrl}/$image';
-  }
+  String get fullImageUrl => ApiConstants.resolveImage(image ?? '');
 
   factory PujaSubCategory.fromJson(Map<String, dynamic> json) {
     return PujaSubCategory(
@@ -87,6 +79,8 @@ class PujaPackage {
   final double priceInr;
   final double priceUsd;
   final String description;
+  final String person;
+  final List<String> packagePoints;
 
   PujaPackage({
     required this.id,
@@ -94,15 +88,28 @@ class PujaPackage {
     required this.priceInr,
     required this.priceUsd,
     required this.description,
+    this.person = '',
+    this.packagePoints = const [],
   });
 
   factory PujaPackage.fromJson(Map<String, dynamic> json) {
+    List<String> points = [];
+    if (json['packagePoints'] is List) {
+      points = (json['packagePoints'] as List)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
     return PujaPackage(
-      id: json['_id'] ?? '',
-      title: json['title'] ?? '',
-      priceInr: (json['priceInr'] ?? 0).toDouble(),
+      id: json['_id']?.toString() ?? '',
+      title: (json['title'] != null && json['title'].toString().isNotEmpty)
+          ? json['title'].toString()
+          : (json['name']?.toString() ?? ''),
+      priceInr: (json['priceInr'] ?? json['price'] ?? 0).toDouble(),
       priceUsd: (json['priceUsd'] ?? 0).toDouble(),
-      description: json['description'] ?? '',
+      description: json['description']?.toString() ?? '',
+      person: json['person']?.toString() ?? '',
+      packagePoints: points,
     );
   }
 }
@@ -138,33 +145,49 @@ class Puja {
     this.subCategoryId,
   });
 
-  String get fullImageUrl {
-    if (image == null || image!.isEmpty) return '';
-    if (image!.startsWith('http')) return image!;
-    return '${ApiConstants.imageBaseUrl}/$image';
-  }
+  String get fullImageUrl => ApiConstants.resolveImage(image ?? '');
 
   factory Puja.fromJson(Map<String, dynamic> json) {
+    List<PujaBenefit> parsedBenefits = [];
+    if (json['benefits'] is List) {
+      for (var b in json['benefits']) {
+        if (b is Map) {
+          parsedBenefits.add(PujaBenefit.fromJson(Map<String, dynamic>.from(b)));
+        }
+      }
+    }
+
+    List<PujaPackage> parsedPackages = [];
+    if (json['packages'] is List) {
+      for (var p in json['packages']) {
+        if (p is Map) {
+          parsedPackages.add(PujaPackage.fromJson(Map<String, dynamic>.from(p)));
+        } else if (p != null) {
+          parsedPackages.add(PujaPackage(
+            id: p.toString(),
+            title: '',
+            priceInr: 0,
+            priceUsd: 0,
+            description: '',
+          ));
+        }
+      }
+    }
+
     return Puja(
-      id: json['_id'] ?? '',
-      title: json['title'] ?? '',
-      subtitle: json['subtitle'] ?? '',
-      slug: json['slug'] ?? '',
-      image: json['image'],
-      startDateTime: json['start_date_time'] ?? '',
-      duration: json['duration'] ?? 0,
-      place: json['place'] ?? '',
-      about: json['about'] ?? '',
-      benefits: (json['benefits'] as List? ?? [])
-          .map((e) => PujaBenefit.fromJson(e))
-          .toList(),
-      packages: (json['packages'] as List? ?? [])
-          .map((e) => (e is Map<String, dynamic>) 
-              ? PujaPackage.fromJson(e) 
-              : PujaPackage(id: e.toString(), title: '', priceInr: 0, priceUsd: 0, description: ''))
-          .toList(),
-      categoryId: json['categoryId'] is Map ? json['categoryId']['_id'] : json['categoryId'],
-      subCategoryId: json['subCategoryId'] is Map ? json['subCategoryId']['_id'] : json['subCategoryId'],
+      id: json['_id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString() ?? '',
+      slug: json['slug']?.toString() ?? '',
+      image: json['image']?.toString(),
+      startDateTime: json['start_date_time']?.toString() ?? '',
+      duration: (json['duration'] is num) ? (json['duration'] as num).toInt() : 0,
+      place: json['place']?.toString() ?? 'Temple / Home',
+      about: json['about']?.toString() ?? '',
+      benefits: parsedBenefits,
+      packages: parsedPackages,
+      categoryId: json['categoryId'] is Map ? json['categoryId']['_id']?.toString() : json['categoryId']?.toString(),
+      subCategoryId: json['subCategoryId'] is Map ? json['subCategoryId']['_id']?.toString() : json['subCategoryId']?.toString(),
     );
   }
 }

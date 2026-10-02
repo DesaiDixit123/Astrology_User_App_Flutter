@@ -29,7 +29,7 @@ class PremiumBottomNav extends StatelessWidget {
       child: Align(
         alignment: Alignment.topCenter,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Container(
             height: 70.h,
             clipBehavior: Clip.none,
@@ -48,7 +48,7 @@ class PremiumBottomNav extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDark.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(35.r),
@@ -63,44 +63,49 @@ class PremiumBottomNav extends StatelessWidget {
                       final isSelected = currentIndex == index;
                       final item = items[index];
 
-                      return GestureDetector(
-                        onTap: () => onTap(index),
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.15)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isSelected ? item.activeIcon : item.icon,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.white60,
-                                size: 24.sp,
-                              ),
-                              if (isSelected) ...[
-                                SizedBox(height: 4.h),
-                                Text(
-                                  item.label,
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.primary,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => onTap(index),
+                          behavior: HitTestBehavior.opaque,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 4.w,
+                              vertical: 6.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20.r),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isSelected ? item.activeIcon : item.icon,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.white60,
+                                  size: 22.sp,
                                 ),
+                                if (isSelected) ...[
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    item.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.primary,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                       );

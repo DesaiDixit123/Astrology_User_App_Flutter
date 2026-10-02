@@ -2,7 +2,9 @@ import 'package:astrology_user/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/custom_button.dart';
+import '../../../../shared/widgets/custom_dropdown_field.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../controllers/profile_controller.dart';
 
@@ -88,6 +90,7 @@ class EditProfilePage extends GetView<ProfileController> {
                     ),
                     SizedBox(height: 16.h),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: GestureDetector(
@@ -103,28 +106,26 @@ class EditProfilePage extends GetView<ProfileController> {
                         ),
                         SizedBox(width: 16.w),
                         Expanded(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.w),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Obx(
-                              () => DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: controller.selectedGender.value.isEmpty
-                                      ? null
-                                      : controller.selectedGender.value,
-                                  hint: Text('gender'.tr),
-                                  isExpanded: true,
-                                  items: [
-                                    DropdownMenuItem(value: 'Male', child: Text('male'.tr)),
-                                    DropdownMenuItem(value: 'Female', child: Text('female'.tr)),
-                                    DropdownMenuItem(value: 'Other', child: Text('other_gender'.tr)),
-                                  ],
-                                  onChanged: (v) => controller.setGender(v ?? ''),
+                          child: Obx(
+                            () => CustomDropdownField<String>(
+                              labelText: 'gender'.tr,
+                              hintText: 'select'.tr,
+                              value: controller.selectedGender.value,
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'Male',
+                                  child: Text('male'.tr, style: AppTextStyles.bodyMedium),
                                 ),
-                              ),
+                                DropdownMenuItem(
+                                  value: 'Female',
+                                  child: Text('female'.tr, style: AppTextStyles.bodyMedium),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Other',
+                                  child: Text('other_gender'.tr, style: AppTextStyles.bodyMedium),
+                                ),
+                              ],
+                              onChanged: (v) => controller.setGender(v ?? ''),
                             ),
                           ),
                         ),
@@ -139,31 +140,33 @@ class EditProfilePage extends GetView<ProfileController> {
                     ),
                     SizedBox(height: 16.h),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.w),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Obx(
-                              () => DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: controller.selectedMaritalStatus.value.isEmpty
-                                      ? null
-                                      : controller.selectedMaritalStatus.value,
-                                  hint: Text('marital_status'.tr),
-                                  isExpanded: true,
-                                  items: [
-                                    DropdownMenuItem(value: 'Single', child: Text('single'.tr)),
-                                    DropdownMenuItem(value: 'Married', child: Text('married'.tr)),
-                                    DropdownMenuItem(value: 'Divorced', child: Text('divorced'.tr)),
-                                    DropdownMenuItem(value: 'Widowed', child: Text('widowed'.tr)),
-                                  ],
-                                  onChanged: (v) => controller.selectedMaritalStatus.value = v ?? '',
+                          child: Obx(
+                            () => CustomDropdownField<String>(
+                              labelText: 'marital_status'.tr,
+                              hintText: 'select'.tr,
+                              value: controller.selectedMaritalStatus.value,
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'Single',
+                                  child: Text('single'.tr, style: AppTextStyles.bodyMedium),
                                 ),
-                              ),
+                                DropdownMenuItem(
+                                  value: 'Married',
+                                  child: Text('married'.tr, style: AppTextStyles.bodyMedium),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Divorced',
+                                  child: Text('divorced'.tr, style: AppTextStyles.bodyMedium),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Widowed',
+                                  child: Text('widowed'.tr, style: AppTextStyles.bodyMedium),
+                                ),
+                              ],
+                              onChanged: (v) => controller.selectedMaritalStatus.value = v ?? '',
                             ),
                           ),
                         ),
@@ -179,10 +182,13 @@ class EditProfilePage extends GetView<ProfileController> {
                       ],
                     ),
                     SizedBox(height: 32.h),
-                    CustomButton(
-                      text: 'save_changes'.tr,
-                      onPressed: controller.updateProfile,
-                      gradient: AppColors.primaryGradient,
+                    Obx(
+                      () => CustomButton(
+                        text: 'save_changes'.tr,
+                        isLoading: controller.isSaving.value,
+                        onPressed: controller.updateProfile,
+                        gradient: AppColors.primaryGradient,
+                      ),
                     ),
                     SizedBox(height: MediaQuery.of(context).padding.bottom + 40.h),
                   ],

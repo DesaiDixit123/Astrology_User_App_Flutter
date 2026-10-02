@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get/get.dart' hide Response, FormData;
+import '../../config/routes/app_routes.dart';
 import '../constants/api_constants.dart';
 import '../constants/app_constants.dart';
 import '../utils/snackbar_util.dart';
@@ -39,6 +41,11 @@ class ApiService {
           final langCode = prefs.getString(AppConstants.keyLanguage) ?? 'en';
           options.headers['Accept-Language'] = langCode;
 
+          if (options.data is FormData) {
+            options.headers.remove('Content-Type');
+            options.headers.remove('content-type');
+          }
+
           _logRequest(options);
           handler.next(options);
         },
@@ -60,8 +67,22 @@ class ApiService {
     return _instance!;
   }
 
-  void _handleError(DioException e) {
+  void _handleError(DioException e) async {
     if (e.response?.statusCode == 401) {
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool(AppConstants.keyIsLoggedIn) ?? false;
+      final token = prefs.getString(AppConstants.keyToken);
+
+      final currentRoute = Get.currentRoute;
+      if (!isLoggedIn ||
+          token == null ||
+          token.isEmpty ||
+          currentRoute == AppRoutes.login ||
+          currentRoute == AppRoutes.otp ||
+          currentRoute == AppRoutes.register ||
+          currentRoute == AppRoutes.splash) {
+        return;
+      }
       SnackbarUtil.error('Session expired. Please login again.');
     } else if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {

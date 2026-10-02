@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/utils/snackbar_util.dart';
@@ -12,6 +13,11 @@ class ShopController extends GetxController {
   final RxString selectedCategoryId = 'All'.obs;
   final RxString searchQuery = ''.obs;
   
+  // Wishlist management
+  final RxSet<String> wishlistProductIds = <String>{}.obs;
+  final RxList wishlistProducts = [].obs;
+  final RxBool isWishlistLoading = false.obs;
+
   // Cart management
   final RxList cart = [].obs;
   final RxDouble cartTotal = 0.0.obs;
@@ -21,9 +27,63 @@ class ShopController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    loadWishlist();
     loadCategories();
     loadProducts();
     loadRecommendations();
+  }
+
+  Future<void> loadWishlist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList('shop_wishlist') ?? [];
+      wishlistProductIds.assignAll(list);
+    } catch (_) {}
+  }
+
+  Future<void> loadWishlistProducts() async {
+    if (wishlistProductIds.isEmpty) {
+      wishlistProducts.clear();
+      return;
+    }
+    isWishlistLoading.value = true;
+    final res = await _api.get(ApiConstants.shopProducts, queryParameters: {
+      'ids': wishlistProductIds.join(','),
+      'limit': 100,
+    });
+    if (ApiService.isSuccess(res)) {
+      final data = ApiService.getData(res);
+      if (data is Map && data.containsKey('docs')) {
+        wishlistProducts.value = List.from(data['docs']);
+      } else {
+        wishlistProducts.value = List.from(data ?? []);
+      }
+    }
+    isWishlistLoading.value = false;
+  }
+
+  bool isWishlisted(String productId) {
+    return wishlistProductIds.contains(productId);
+  }
+
+  Future<void> toggleWishlist(String productId, [String? productName]) async {
+    if (productId.isEmpty) return;
+    if (wishlistProductIds.contains(productId)) {
+      wishlistProductIds.remove(productId);
+      wishlistProducts.removeWhere((item) => item['_id'] == productId);
+      SnackbarUtil.info('${productName ?? 'Product'} removed from wishlist');
+    } else {
+      wishlistProductIds.add(productId);
+      final item = products.firstWhereOrNull((p) => p['_id'] == productId);
+      if (item != null && !wishlistProducts.any((p) => p['_id'] == productId)) {
+        wishlistProducts.add(item);
+      }
+      SnackbarUtil.success('${productName ?? 'Product'} added to wishlist');
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('shop_wishlist', wishlistProductIds.toList());
+    } catch (_) {}
   }
 
   Future<void> loadCategories() async {
@@ -37,8 +97,9 @@ class ShopController extends GetxController {
 
   Future<void> loadProducts({String? categoryId, String? query, bool refresh = true}) async {
     isLoading.value = true;
+    final catId = categoryId ?? selectedCategoryId.value;
     final res = await _api.get(ApiConstants.shopProducts, queryParameters: {
-      if (categoryId != null && categoryId != 'All') 'categoryId': categoryId,
+      if (catId.isNotEmpty && catId != 'All') 'categoryId': catId,
       if (query != null && query.isNotEmpty) 'search': query,
       'limit': 50,
     });

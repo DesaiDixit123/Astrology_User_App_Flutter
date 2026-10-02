@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/utils/astrologer_utils.dart';
 import '../controllers/chat_controller.dart';
 
 class ChatPage extends GetView<ChatController> {
@@ -23,44 +24,32 @@ class ChatPage extends GetView<ChatController> {
           return;
         }
 
-        final shouldExit = await Get.dialog<bool>(
-          AlertDialog(
-            title: Text('end_chat_title'.tr),
-            content: Text('end_chat_confirm'.tr),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('cancel'.tr),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text('end_chat'.tr),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldExit == true) {
-          controller.endChat();
-        }
+        controller.confirmAndEndChat();
       },
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          title: Obx(() => Row(
-            children: [
-              CircleAvatar(
-                radius: 18.r,
-                backgroundColor: Colors.white,
-                backgroundImage: controller.partner['profile_pic'] != null && controller.partner['profile_pic'].toString().isNotEmpty
-                    ? NetworkImage(ApiConstants.resolveImage(controller.partner['profile_pic'].toString()))
-                    : null,
-                child: (controller.partner['profile_pic'] == null || controller.partner['profile_pic'].toString().isEmpty)
-                    ? const Icon(Icons.person, color: Colors.grey, size: 18)
-                    : null,
-              ),
+          title: Obx(() {
+            final bool isAi = controller.partner['is_ai'] == true ||
+                controller.currentSession['is_ai'] == true ||
+                (controller.partner['_id']?.toString().startsWith('6aa00000000000000000000') ?? false);
+            final astroPic = AstrologerUtils.getAstrologerImage(controller.partner);
+            return Row(
+              children: [
+                if (isAi)
+                  _buildAiAvatar(controller.partner, 36.r)
+                else
+                  CircleAvatar(
+                    radius: 18.r,
+                    backgroundColor: Colors.white,
+                    backgroundImage: astroPic.isNotEmpty
+                        ? CachedNetworkImageProvider(ApiConstants.resolveImage(astroPic))
+                        : null,
+                    child: astroPic.isEmpty
+                        ? const Icon(Icons.person, color: Colors.grey, size: 18)
+                        : null,
+                  ),
               SizedBox(width: 10.w),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,12 +72,13 @@ class ChatPage extends GetView<ChatController> {
                 ],
               ),
             ],
-          )),
+          );
+        }),
           actions: [
             if (!controller.isReadOnly.value)
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => controller.endChat(),
+              onPressed: () => controller.confirmAndEndChat(),
             ),
           ],
         ),
@@ -285,24 +275,64 @@ class ChatPage extends GetView<ChatController> {
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (isImage)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: 200.w,
-                  placeholder: (context, url) => Container(
-                    height: 150.h,
+              GestureDetector(
+                onTap: () {
+                  Get.dialog(
+                    Dialog(
+                      backgroundColor: Colors.black87,
+                      insetPadding: EdgeInsets.all(12.w),
+                      child: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          InteractiveViewer(
+                            panEnabled: true,
+                            minScale: 0.8,
+                            maxScale: 4.0,
+                            child: Center(
+                              child: CachedNetworkImage(
+                                imageUrl: imageUrl,
+                                fit: BoxFit.contain,
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(color: Colors.white),
+                                ),
+                                errorWidget: (context, url, error) => const Center(
+                                  child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                              onPressed: () => Get.back(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
                     width: 200.w,
-                    color: Colors.grey.shade200,
-                    child: const Center(child: CircularProgressIndicator()),
+                    placeholder: (context, url) => Container(
+                      height: 150.h,
+                      width: 200.w,
+                      color: Colors.grey.shade200,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      height: 150.h,
+                      width: 200.w,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                    fit: BoxFit.cover,
                   ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 150.h,
-                    width: 200.w,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
-                  fit: BoxFit.cover,
                 ),
               )
             else if (type == 'image')
@@ -494,11 +524,92 @@ class ChatPage extends GetView<ChatController> {
     int s = seconds % 60;
     String timer = '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
     
+    final isAi = controller.partner['is_ai'] == true ||
+        controller.currentSession['is_ai'] == true ||
+        (controller.partner['_id']?.toString().startsWith('6aa00000000000000000000') ?? false);
+    if (isAi) {
+      return '$timer • FREE AI CHAT';
+    }
+
     if (controller.maxMinutes.value > 0) {
       return '$timer / ${controller.maxMinutes.value}:00 min';
     }
     
     int chargeableMins = (seconds / 60).ceil();
     return '$timer (₹${chargeableMins * price})';
+  }
+
+  Widget _buildAiAvatar(Map astro, double size) {
+    final name = (astro['name'] ?? '').toString();
+
+    List<Color> gradientColors;
+    IconData iconData;
+    IconData faceIcon;
+
+    if (name.contains('Aarav')) {
+      gradientColors = const [Color(0xFFFF9933), Color(0xFFFF5722)];
+      iconData = Icons.auto_awesome;
+      faceIcon = Icons.face;
+    } else if (name.contains('Rohan')) {
+      gradientColors = const [Color(0xFF1E3C72), Color(0xFF2A5298)];
+      iconData = Icons.insights_rounded;
+      faceIcon = Icons.face;
+    } else if (name.contains('Gautam')) {
+      gradientColors = const [Color(0xFF00796B), Color(0xFF004D40)];
+      iconData = Icons.diamond_outlined;
+      faceIcon = Icons.face;
+    } else if (name.contains('Ragini')) {
+      gradientColors = const [Color(0xFFE91E63), Color(0xFFFF6090)];
+      iconData = Icons.spa_rounded;
+      faceIcon = Icons.face_3;
+    } else if (name.contains('Shloka')) {
+      gradientColors = const [Color(0xFF7B1FA2), Color(0xFF4A148C)];
+      iconData = Icons.style_rounded;
+      faceIcon = Icons.face_3;
+    } else {
+      gradientColors = const [Color(0xFFD81B60), Color(0xFF880E4F)];
+      iconData = Icons.visibility_rounded;
+      faceIcon = Icons.face_3;
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Icon(
+            faceIcon,
+            color: Colors.white,
+            size: size * 0.58,
+          ),
+          Positioned(
+            bottom: 2,
+            right: 2,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Icon(
+                iconData,
+                color: const Color(0xFFFFD54F),
+                size: size * 0.22,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

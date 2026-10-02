@@ -5,6 +5,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/utils/astrologer_utils.dart';
+import '../../../../core/data/ai_astrologers_data.dart';
 
 class HomeController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -17,6 +18,15 @@ class HomeController extends GetxController {
   final RxBool isFreeChatEligible = false.obs;
   final RxBool isFreeChatEnabled = true.obs;
   final RxInt freeChatDurationMinutes = 1.obs;
+
+  // Astrologer toggle: 'vedic' or 'ai'
+  final RxString selectedAstrologerType = 'vedic'.obs;
+  final RxList aiAstrologers = [].obs;
+  final RxBool isAiChatEnabled = true.obs;
+  final RxBool isAiFirstChatFree = true.obs;
+  final RxBool isAiFreeAvailable = true.obs;
+  final RxInt aiChatPrice = 49.obs;
+  final RxString aiCurrency = 'INR'.obs;
 
   late PageController bannerPageController;
   Timer? bannerTimer;
@@ -191,6 +201,43 @@ class HomeController extends GetxController {
           _fetchVideos(),
         ]);
       }
+
+      // Initialize AI Astrologers
+      aiAstrologers.value = List.from(AIAstrologersData.defaultAIAstrologers);
+      try {
+        final aiRes = await _api.get(ApiConstants.aiAstrologers);
+        if (ApiService.isSuccess(aiRes)) {
+          final aiData = ApiService.getData(aiRes);
+          if (aiData is List && aiData.isNotEmpty) {
+            aiAstrologers.value = List.from(aiData);
+            final first = aiData.first;
+            if (first is Map && first['chat_price'] != null) {
+              aiChatPrice.value = (first['chat_price'] as num).toInt();
+            }
+            if (first is Map && first['is_enabled'] != null) {
+              isAiChatEnabled.value = first['is_enabled'] == true;
+            }
+            if (first is Map && first['first_chat_free'] != null) {
+              isAiFirstChatFree.value = first['first_chat_free'] == true;
+            }
+          }
+        }
+      } catch (_) {}
+
+      // Fetch AI Chat config & user eligibility
+      try {
+        final eligRes = await _api.get(ApiConstants.aiChatEligibility);
+        if (ApiService.isSuccess(eligRes)) {
+          final data = ApiService.getData(eligRes);
+          if (data is Map) {
+            isAiChatEnabled.value = data['is_enabled'] ?? true;
+            isAiFirstChatFree.value = data['first_chat_free'] ?? true;
+            isAiFreeAvailable.value = data['is_free_chat_available'] ?? false;
+            aiChatPrice.value = (data['chat_price'] as num?)?.toInt() ?? 49;
+            aiCurrency.value = (data['currency'] ?? 'INR').toString();
+          }
+        }
+      } catch (_) {}
     } catch (e) {
       print('Error loading home data: $e');
     } finally {
@@ -347,11 +394,10 @@ class HomeController extends GetxController {
       // Name & profile extraction
       normalized['name'] = AstrologerUtils.getLocalizedAstrologerName(target);
 
-      String? extractedPic = target['profilePic']?.toString() ?? target['profile_pic']?.toString() ?? target['profile_image']?.toString();
-      if ((extractedPic == null || extractedPic.isEmpty) && personal is Map) {
-        extractedPic = personal['profile_image']?.toString() ?? personal['profile_pic']?.toString();
-      }
-      normalized['profilePic'] = extractedPic ?? '';
+      final extractedPic = AstrologerUtils.getAstrologerImage(target);
+      normalized['profilePic'] = extractedPic;
+      normalized['profile_pic'] = extractedPic;
+      normalized['profile_image'] = extractedPic;
 
       // Skills / specialization – prefer names from skill_details
       final List<String> skills = [];

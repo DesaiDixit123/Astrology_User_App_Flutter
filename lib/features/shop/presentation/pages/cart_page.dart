@@ -4,9 +4,9 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../controllers/shop_controller.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../widgets/checkout_sheet.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 class CartPage extends GetView<ShopController> {
   const CartPage({super.key});
@@ -79,12 +79,14 @@ class CartPage extends GetView<ShopController> {
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12.r),
                           ),
-                          child: imageUrl != null 
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  child: Image.network(ApiConstants.resolveImage(imageUrl), fit: BoxFit.cover),
-                                )
-                              : Icon(Icons.shopping_bag_outlined, size: 40.sp, color: AppColors.primary),
+                          child: AppNetworkImage(
+                            url: imageUrl,
+                            width: 70.w,
+                            height: 70.h,
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(12.r),
+                            fallbackIcon: Icons.shopping_bag_outlined,
+                          ),
                         ),
                         SizedBox(width: 16.w),
                         Expanded(

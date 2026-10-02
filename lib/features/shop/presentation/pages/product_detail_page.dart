@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../controllers/shop_controller.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 class ProductDetailPage extends GetView<ShopController> {
   const ProductDetailPage({super.key});
@@ -22,6 +23,17 @@ class ProductDetailPage extends GetView<ShopController> {
       appBar: AppBar(
         title: const Text('Product Details'),
         actions: [
+          Obx(() {
+            final productId = product['_id']?.toString() ?? '';
+            final isFav = controller.isWishlisted(productId);
+            return IconButton(
+              icon: Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                color: isFav ? Colors.red : Colors.black,
+              ),
+              onPressed: () => controller.toggleWishlist(productId, product['name']?.toString()),
+            );
+          }),
           Stack(
             children: [
               IconButton(
@@ -59,10 +71,11 @@ class ProductDetailPage extends GetView<ShopController> {
                 child: PageView.builder(
                   itemCount: images.length,
                   itemBuilder: (context, index) {
-                    return Image.network(
-                      images[index],
+                    return AppNetworkImage(
+                      url: images[index].toString(),
                       fit: BoxFit.cover,
                       width: double.infinity,
+                      fallbackIcon: Icons.shopping_bag_outlined,
                     );
                   },
                 ),

@@ -110,7 +110,22 @@ class _PujaDetailsPageState extends State<PujaDetailsPage> with SingleTickerProv
             Hero(
               tag: puja.id,
               child: puja.fullImageUrl.isNotEmpty
-                  ? Image.network(puja.fullImageUrl, fit: BoxFit.cover)
+                  ? Image.network(
+                      puja.fullImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppColors.primary, AppColors.primaryLight],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(Icons.temple_hindu, size: 72.sp, color: Colors.white.withOpacity(0.8)),
+                        ),
+                      ),
+                    )
                   : Container(color: AppColors.primary.withOpacity(0.2)),
             ),
             Container(
@@ -247,11 +262,24 @@ class _PujaDetailsPageState extends State<PujaDetailsPage> with SingleTickerProv
   }
 
   Widget _buildPackagesTab(Puja puja) {
+    if (puja.packages.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Text(
+            'No packages available for this Puja.',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
     return ListView.builder(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 100.h),
       itemCount: puja.packages.length,
       itemBuilder: (context, index) {
         final package = puja.packages[index];
+        final String displayTitle = package.title.isNotEmpty ? package.title : 'Puja Package';
+
         return Container(
           margin: EdgeInsets.only(bottom: 20.h),
           decoration: BoxDecoration(
@@ -261,28 +289,79 @@ class _PujaDetailsPageState extends State<PujaDetailsPage> with SingleTickerProv
             border: Border.all(color: Colors.grey[200]!),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.all(15.w),
+                padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withOpacity(0.06),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: Text(package.title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold))),
-                    Text('₹${package.priceInr}', style: AppTextStyles.h4.copyWith(color: AppColors.primary)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayTitle,
+                            style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          if (package.person.isNotEmpty) ...[
+                            SizedBox(height: 4.h),
+                            Row(
+                              children: [
+                                Icon(Icons.person_outline, size: 14.sp, color: AppColors.primary),
+                                SizedBox(width: 4.w),
+                                Text(
+                                  package.person,
+                                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '₹${package.priceInr.toInt()}',
+                      style: AppTextStyles.h4.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+                    ),
                   ],
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(15.w),
+                padding: EdgeInsets.all(16.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(package.description, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-                    SizedBox(height: 15.h),
+                    if (package.description.isNotEmpty) ...[
+                      Text(
+                        package.description,
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      SizedBox(height: 12.h),
+                    ],
+                    if (package.packagePoints.isNotEmpty) ...[
+                      ...package.packagePoints.map((point) => Padding(
+                        padding: EdgeInsets.only(bottom: 8.h),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.check_circle_rounded, size: 16.sp, color: Colors.green[600]),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                point,
+                                style: AppTextStyles.bodySmall.copyWith(color: Colors.black87),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                      SizedBox(height: 12.h),
+                    ],
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

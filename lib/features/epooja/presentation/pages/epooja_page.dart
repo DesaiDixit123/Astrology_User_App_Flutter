@@ -7,6 +7,7 @@ import 'package:astrology_user/features/services/presentation/controllers/puja_c
 import 'package:astrology_user/features/services/data/models/puja_model.dart';
 import './puja_list_page.dart';
 import '../../../../config/routes/app_routes.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 class EPoojaPage extends StatefulWidget {
   const EPoojaPage({super.key});
@@ -151,17 +152,15 @@ class _EPoojaPageState extends State<EPoojaPage> {
           children: [
             Expanded(
               flex: 3,
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-                child: Hero(
-                  tag: category.id,
-                  child: category.fullImageUrl.isNotEmpty
-                      ? Image.network(category.fullImageUrl, fit: BoxFit.cover)
-                      : Container(
-                          color: AppColors.primary.withOpacity(0.05),
-                          child: Icon(Icons.temple_hindu,
-                              size: 40.sp, color: AppColors.primary),
-                        ),
+              child: Hero(
+                tag: category.id,
+                child: AppNetworkImage(
+                  url: category.fullImageUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                  fallbackIcon: Icons.temple_hindu,
                 ),
               ),
             ),

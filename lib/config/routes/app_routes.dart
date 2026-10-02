@@ -38,6 +38,7 @@ class AppRoutes {
   static const String horoscope = '/horoscope';
   static const String horoscopeDetail = '/horoscope-detail';
   static const String panchang = '/panchang';
+  static const String calendar = '/calendar';
 
   static const String help = '/help';
   static const String savedAstrologers = '/saved-astrologers';
@@ -47,6 +48,7 @@ class AppRoutes {
   static const String shop = '/shop';
   static const String productDetail = '/product-detail';
   static const String cart = '/cart';
+  static const String wishlist = '/wishlist';
   static const String orders = '/orders';
   static const String shopOrders = '/shop-orders';
   static const String shopOrderDetail = '/shop-order-detail';
@@ -87,4 +89,5 @@ class AppRoutes {
   // Calls
   static const String voiceCall = '/voice-call';
   static const String videoCall = '/video-call';
+  static const String aiVoiceAssistant = '/ai-voice-assistant';
 }

@@ -15,20 +15,50 @@ class BlogDetailPage extends StatelessWidget {
     // Expecting arguments to be passed when navigating
     final Map blog = Get.arguments ?? {};
     
-    final title = blog['title'] ?? 'Blog Detail';
-    final content = blog['content'] ?? '';
-    final image = blog['image'] ?? '';
-    final imageUrl = image.toString().startsWith('http')
-        ? image.toString()
-        : '${ApiConstants.imageBaseUrl}/$image';
+    final title = blog['title']?.toString() ?? 'Blog Detail';
+    
+    // Content body: checks 'description' first (schema default) then 'content'
+    final rawContent = (blog['description'] != null && blog['description'].toString().trim().isNotEmpty)
+        ? blog['description']
+        : (blog['content'] ?? '');
+    final content = rawContent.toString().trim();
 
-    // Handle astrologer info
+    final image = blog['image'] ?? '';
+    final imageUrl = ApiConstants.resolveImage(image.toString());
+
+    // Handle astrologer / author info
     final astrologer = blog['astrologer_id'];
-    String authorName = 'Astrologer';
+    String authorName = '';
     String? authorPic;
+
     if (astrologer is Map) {
-      authorName = astrologer['name'] ?? 'Expert';
-      authorPic = astrologer['profilePic'];
+      if (astrologer['personal_details'] is Map) {
+        authorName = astrologer['personal_details']?['name']?.toString() ?? '';
+        final pic = astrologer['personal_details']?['profile_image'];
+        if (pic != null && pic.toString().isNotEmpty) {
+          authorPic = ApiConstants.resolveImage(pic.toString());
+        }
+      }
+      if (authorName.trim().isEmpty) {
+        authorName = astrologer['name']?.toString() ?? '';
+      }
+      if (authorPic == null || authorPic.isEmpty) {
+        final pic = astrologer['profilePic'] ?? astrologer['profile_image'];
+        if (pic != null && pic.toString().isNotEmpty) {
+          authorPic = ApiConstants.resolveImage(pic.toString());
+        }
+      }
+    }
+
+    // Fallback to blog['post_by'] or blog['author']
+    if (authorName.trim().isEmpty) {
+      if (blog['post_by'] != null && blog['post_by'].toString().trim().isNotEmpty) {
+        authorName = blog['post_by'].toString().trim();
+      } else if (blog['author'] != null && blog['author'].toString().trim().isNotEmpty) {
+        authorName = blog['author'].toString().trim();
+      } else {
+        authorName = 'પંડિત નરસિંહભાઈ પટેલ';
+      }
     }
 
     // Format date
@@ -43,10 +73,11 @@ class BlogDetailPage extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 250.h,
+            expandedHeight: 260.h,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: CachedNetworkImage(
@@ -60,7 +91,7 @@ class BlogDetailPage extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.article,
-                    size: 100.sp,
+                    size: 90.sp,
                     color: AppColors.primary,
                   ),
                 ),
@@ -70,7 +101,7 @@ class BlogDetailPage extends StatelessWidget {
               icon: Container(
                 padding: EdgeInsets.all(8.w),
                 decoration: const BoxDecoration(
-                  color: Colors.black26,
+                  color: Colors.black45,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
@@ -97,7 +128,7 @@ class BlogDetailPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Text(
-                          'Astrology Blog',
+                          'જ્યોતિષ બ્લોગ',
                           style: AppTextStyles.caption.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
@@ -106,48 +137,94 @@ class BlogDetailPage extends StatelessWidget {
                       ),
                       Text(
                         dateStr,
-                        style: AppTextStyles.caption,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                   SizedBox(height: 16.h),
-                  Text(title, style: AppTextStyles.h2),
-                  SizedBox(height: 16.h),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 18.r,
-                        backgroundColor: AppColors.border,
-                        backgroundImage: (authorPic != null && authorPic.isNotEmpty)
-                            ? NetworkImage(authorPic)
-                            : null,
-                        child: (authorPic == null || authorPic.isEmpty)
-                            ? const Icon(Icons.person, color: Colors.grey)
-                            : null,
-                      ),
-                      SizedBox(width: 8.w),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            authorName,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Expert Astrologer',
-                            style: AppTextStyles.caption,
-                          ),
-                        ],
-                      ),
-                    ],
+                  Text(
+                    title,
+                    style: AppTextStyles.h2.copyWith(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      height: 1.3,
+                    ),
                   ),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 18.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                    ),
+                    child: Row(
+                      children: [
+                        ClipOval(
+                          child: (authorPic != null && authorPic.isNotEmpty)
+                              ? CachedNetworkImage(
+                                  imageUrl: authorPic,
+                                  width: 44.w,
+                                  height: 44.w,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    width: 44.w,
+                                    height: 44.w,
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    width: 44.w,
+                                    height: 44.w,
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    child: Icon(Icons.person, color: AppColors.primary, size: 24.sp),
+                                  ),
+                                )
+                              : Container(
+                                  width: 44.w,
+                                  height: 44.w,
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  child: Icon(Icons.person, color: AppColors.primary, size: 24.sp),
+                                ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                authorName,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                'વૈદિક જ્યોતિષાચાર્ય',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 22.h),
                   Text(
                     content,
                     style: AppTextStyles.bodyLarge.copyWith(
-                      height: 1.6,
+                      height: 1.7,
+                      fontSize: 15.sp,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -161,4 +238,3 @@ class BlogDetailPage extends StatelessWidget {
     );
   }
 }
-

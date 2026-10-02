@@ -43,6 +43,7 @@ class ChatController extends GetxController {
   String _userName = '';
   String _userProfilePic = '';
   bool _hasPartnerJoined = false;
+  bool _isShowingEndedDialog = false;
   String? _joinedRoomId;
 
   @override
@@ -85,6 +86,7 @@ class ChatController extends GetxController {
     _typingDebounce?.cancel();
     scrollController.dispose();
     _socket?.disconnect();
+    _socket?.dispose();
     _refreshStatusDependentData();
     if (Get.isRegistered<ChatListController>()) {
       Get.find<ChatListController>().fetchChatSessions();
@@ -93,24 +95,55 @@ class ChatController extends GetxController {
   }
 
   void _initSocket() {
-    _socket = IO.io(ApiConstants.baseUrl, IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .build());
+    _socket = IO.io(
+      ApiConstants.baseUrl,
+      IO.OptionBuilder()
+        .setTransports(['websocket'])
+        .enableForceNew()
+        .disableAutoConnect()
+        .enableReconnection()
+        .setReconnectionAttempts(9999)
+        .setReconnectionDelay(1000)
+        .build(),
+    );
 
-    _socket?.onConnect((_) {
-      print('Chat: Connected to Socket.io');
-      _joinedRoomId = ''; // Clear joined room id so we can rejoin!
-      if (currentSession['_id'] != null) {
-        _joinRoom(currentSession['_id']);
+    void onConnectOrReconnect() {
+      print('Chat: Connected/Reconnected to Socket.io');
+      if (_customerId.isNotEmpty) {
+        _socket?.emit('register_customer', _customerId);
       }
+      final sid = currentSession['_id']?.toString();
+      if (sid != null && sid.isNotEmpty) {
+        _joinedRoomId = '';
+        _joinRoom(sid);
+        _syncMessagesSilently();
+      }
+    }
+
+    _socket?.onConnect((_) => onConnectOrReconnect());
+    _socket?.onReconnect((_) => onConnectOrReconnect());
+    _socket?.on('reconnect', (_) => onConnectOrReconnect());
+
+    _socket?.onDisconnect((_) {
+      print('Chat: Disconnected from Socket.io');
+      _joinedRoomId = '';
     });
 
     _socket?.on('receive_message', (data) {
       if (data is Map) {
+        final id = data['_id']?.toString();
+        if (id != null && messages.any((m) => m['_id']?.toString() == id)) {
+          return;
+        }
         messages.add(data);
         _scrollToBottom();
       }
     });
+
+    _socket?.connect();
+    if (_socket?.connected == true) {
+      onConnectOrReconnect();
+    }
 
     _socket?.on('typing', (data) {
       if (data is Map) {
@@ -128,9 +161,36 @@ class ChatController extends GetxController {
     });
 
     _socket?.on('chat_ended', (data) {
+      if (_isShowingEndedDialog) {
+        return;
+      }
+
+      final reason = data is Map ? data['reason']?.toString() : null;
+      final duration = data is Map ? (data['duration'] as num?)?.toInt() ?? 0 : 0;
+
+      final bool isActiveChat = chatDuration.value > 0 || _hasPartnerJoined || duration > 0;
+
+      // If user cancelled, or astrologer declined, or chat never started / connected, exit cleanly with NO dialogs
+      if (!isActiveChat || reason == 'cancelled' || reason == 'cancelled_by_user' || reason == 'astrologer_declined' || reason == 'rejected') {
+        _cleanupAndExit();
+        if (reason == 'astrologer_declined' || reason == 'rejected') {
+          SnackbarUtil.info('Astrologer is currently unavailable or declined the request.');
+        }
+        return;
+      }
+
       isEnded.value = true;
       _durationTimer?.cancel();
       _showEndedDialog(data is Map ? data : {});
+    });
+
+    _socket?.on('cancel_chat_request', (data) {
+      print('Chat: Received cancel_chat_request: $data');
+      final reason = data is Map ? data['reason']?.toString() : null;
+      _cleanupAndExit();
+      if (reason == 'astrologer_declined' || reason == 'rejected') {
+        SnackbarUtil.info('Astrologer is currently unavailable or declined the request.');
+      }
     });
 
     _socket?.on('waiting_time', (data) {
@@ -177,9 +237,11 @@ class ChatController extends GetxController {
   }
 
   void _joinRoom(String sessionId) {
-    // ✅ FIXED: Only emit join_chat once per session to prevent partner_joined re-trigger
-    if (_joinedRoomId == sessionId) return;
+    if (sessionId.isEmpty) return;
     _joinedRoomId = sessionId;
+    if (_socket == null || _socket?.connected != true) {
+      _initSocket();
+    }
     _socket?.emit('join_chat', {
       'session_id': sessionId,
       'customer_id': _customerId,
@@ -228,6 +290,7 @@ class ChatController extends GetxController {
     // Reset state for a new session
     messages.clear();
     isEnded.value = false;
+    _isShowingEndedDialog = false;
     isQueued.value = false;
     isBusy.value = false;
     isOtherTyping.value = false;
@@ -237,6 +300,12 @@ class ChatController extends GetxController {
     chatDuration.value = 0;
     maxMinutes.value = 0;
     currentSession.value = {};
+    _hasPartnerJoined = false;
+    _joinedRoomId = '';
+    
+    if (_socket == null || _socket?.connected != true) {
+      _initSocket();
+    }
     
     isLoading.value = true;
     final res = await _api.post('/customer/chat/initiate', data: {
@@ -300,6 +369,7 @@ class ChatController extends GetxController {
               final now = DateTime.now();
               final diff = now.difference(startedAt).inSeconds;
               chatDuration.value = diff > 0 ? diff : 0;
+              _hasPartnerJoined = true;
               _startTimer();
             } catch (_) {}
           }
@@ -318,7 +388,47 @@ class ChatController extends GetxController {
     _durationTimer?.cancel();
     _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       chatDuration.value++;
+      // Every 3 seconds, silently fetch latest messages from backend to guarantee no missed messages
+      if (chatDuration.value % 3 == 0) {
+        _syncMessagesSilently();
+      }
     });
+  }
+
+  bool _isSyncing = false;
+  Future<void> _syncMessagesSilently() async {
+    final sid = currentSession['_id']?.toString();
+    if (sid == null || sid.isEmpty || _isSyncing || isEnded.value) return;
+    _isSyncing = true;
+    try {
+      final res = await _api.get('/customer/chat/messages/$sid');
+      if (ApiService.isSuccess(res)) {
+        final data = ApiService.getData(res);
+        List? rawList;
+        if (data is Map && data['messages'] is List) {
+          rawList = data['messages'] as List;
+        } else if (data is List) {
+          rawList = data;
+        }
+        if (rawList != null && rawList.isNotEmpty) {
+          bool added = false;
+          for (final msg in rawList) {
+            if (msg is Map) {
+              final id = msg['_id']?.toString();
+              if (id != null && !messages.any((m) => m['_id']?.toString() == id)) {
+                messages.add(msg);
+                added = true;
+              }
+            }
+          }
+          if (added) {
+            _scrollToBottom();
+          }
+        }
+      }
+    } catch (_) {} finally {
+      _isSyncing = false;
+    }
   }
 
   Future<void> sendMessage(String text, {String? image, String messageType = 'text'}) async {
@@ -392,16 +502,50 @@ class ChatController extends GetxController {
     }
   }
 
+  Future<void> confirmAndEndChat() async {
+    if (isEnded.value) return;
+
+    final shouldExit = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        title: Text('end_chat_title'.tr.isNotEmpty ? 'end_chat_title'.tr : 'End Chat'),
+        content: Text('end_chat_confirm'.tr.isNotEmpty ? 'end_chat_confirm'.tr : 'Are you sure you want to end this consultation?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('cancel'.tr.isNotEmpty ? 'cancel'.tr : 'Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            ),
+            child: Text('end_chat'.tr.isNotEmpty ? 'end_chat'.tr : 'End Chat'),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+
+    if (shouldExit == true) {
+      await endChat(reason: 'completed');
+    }
+  }
+
   Future<void> endChat({String? reason}) async {
     if (isEnded.value) return;
     isEnded.value = true;
     _durationTimer?.cancel();
 
     final sessionId = currentSession['_id']?.toString();
+    final bool isActiveChat = chatDuration.value > 0 || _hasPartnerJoined || (currentSession['status'] == 'connected');
+
     if (sessionId != null && sessionId.isNotEmpty) {
       Map<String, dynamic>? result;
       try {
-        if (chatDuration.value > 0) {
+        if (isActiveChat && reason != 'cancelled' && reason != 'cancelled_by_user') {
           final effectiveReason = reason ?? 'completed';
           final res = await _api.post('/customer/chat/end', data: {
             'session_id': sessionId,
@@ -412,19 +556,34 @@ class ChatController extends GetxController {
             result = ApiService.getData(res) as Map<String, dynamic>?;
           }
         } else {
-          // If duration is 0, session never started. 
-          // Avoid calling /end REST API as it triggers duration calculation and charging.
-          // The socket emission below will notify the system.
-          print('Chat: Cancelling unstarted session via socket only.');
+          print('Chat: Cancelling unstarted session.');
+          _api.post('/customer/chat/cancel-queue', data: {
+            'session_id': sessionId,
+            'queue_id': queueId.value,
+          }).catchError((_) => null);
         }
-      } catch (_) {}
-      if (chatDuration.value == 0) {
+      } catch (e) {
+        print('Error calling end chat API: $e');
+      }
+
+      if (!isActiveChat || reason == 'cancelled' || reason == 'cancelled_by_user') {
         _socket?.emit('cancel_chat_request', {'session_id': sessionId});
-        _socket?.emit('end_chat', {'session_id': sessionId});
         _cleanupAndExit();
       } else {
-        _socket?.emit('end_chat', {'session_id': sessionId});
-        _showEndedDialog(result ?? {});
+        _socket?.emit('end_chat', {'session_id': sessionId, 'reason': reason ?? 'completed'});
+
+        final Map<String, dynamic> summaryData = result != null ? Map<String, dynamic>.from(result) : {};
+        if (!summaryData.containsKey('duration') || (summaryData['duration'] == 0 && chatDuration.value > 0)) {
+          summaryData['duration'] = chatDuration.value;
+        }
+        if (!summaryData.containsKey('total_charge') && !summaryData.containsKey('amount_charged')) {
+          final double rate = (partner['pricePerMinute'] ?? partner['chat_price'] ?? 10).toDouble();
+          final int minutes = (chatDuration.value / 60).ceil();
+          summaryData['total_charge'] = (minutes > 0 ? minutes : 1) * rate;
+        }
+        summaryData['reason'] = reason ?? 'completed';
+
+        _showEndedDialog(summaryData);
       }
     } else {
       _cleanupAndExit();
@@ -432,8 +591,10 @@ class ChatController extends GetxController {
   }
 
   void _exitChatScreen() {
-    // Close any open dialogs first, then exit chat page
-    if (Get.isDialogOpen == true) Get.back();
+    // Close any open dialogs first
+    while (Get.isDialogOpen == true) {
+      Get.back();
+    }
     // Pop until we exit the chat route
     final route = Get.currentRoute;
     if (route.contains('chat')) {
@@ -443,17 +604,29 @@ class ChatController extends GetxController {
 
   void _cleanupAndExit() {
     isEnded.value = true;
+    _isShowingEndedDialog = false;
     _durationTimer?.cancel();
     _exitChatScreen();
+    _refreshStatusDependentData();
   }
 
   void _showEndedDialog(Map data) {
-    if (Get.isDialogOpen == true) Get.back(); // Close any open dialogs (like busy or recharge)
-    
+    if (_isShowingEndedDialog) return;
+    _isShowingEndedDialog = true;
+
     final int durationSec = (data['duration'] ?? chatDuration.value) as int;
+    final String reason = data['reason'] ?? 'Session completed';
+
+    // If chat never started or was cancelled before connecting, exit cleanly with NO dialogs
+    if (durationSec <= 0 && !_hasPartnerJoined && (reason == 'cancelled' || reason == 'cancelled_by_user')) {
+      _cleanupAndExit();
+      return;
+    }
+
+    if (Get.isDialogOpen == true) Get.back(); // Close any open dialogs (like busy or recharge)
+
     final double totalCharge = (data['total_charge'] as num?)?.toDouble() ?? (data['amount_charged'] as num?)?.toDouble() ?? 0.0;
     final double balance = (data['customer_balance'] as num?)?.toDouble() ?? (data['wallet_balance'] as num?)?.toDouble() ?? 0.0;
-    final String reason = data['reason'] ?? 'Session completed';
     final String displayReason = reason == 'insufficient_balance' 
         ? 'Session ended due to low balance' 
         : (reason == 'free_chat_limit' ? 'Free 1-minute offer ended' : reason);
@@ -464,7 +637,7 @@ class ChatController extends GetxController {
       title: 'Chat Ended',
       content: Column(
         children: [
-          if (displayReason != 'Session completed')
+          if (displayReason.isNotEmpty && displayReason != 'Session completed')
             Text(displayReason, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _summaryRow('Duration', durationText),
@@ -477,19 +650,20 @@ class ChatController extends GetxController {
         if (Get.isRegistered<WalletController>()) {
           Get.find<WalletController>().walletBalance.value = balance;
         }
-        Get.back(); // Close dialog
+        Get.back(); // Close Chat Ended dialog
         _refreshStatusDependentData();
         
         if (reason == 'insufficient_balance' || reason == 'free_chat_limit') {
-          _exitChatScreen(); // Exit first
+          _exitChatScreen();
           _showRechargeDialog(reason == 'free_chat_limit'
               ? 'Your ${maxMinutes.value}-minute free chat has ended. Please recharge your wallet to continue consulting.'
               : 'Your balance was insufficient to continue the chat. Please recharge your wallet.');
         } else if (reason == 'astrologer_declined') {
-          _exitChatScreen(); // Exit first
+          _exitChatScreen();
           _showDeclinedDialog('The astrologer declined your chat request. Please try another astrologer.');
         } else {
-          _showRatingDialog(); // Show rating, which exits chat after
+          // Show rating dialog cleanly
+          _showRatingDialog();
         }
       },
       barrierDismissible: false,
@@ -505,22 +679,42 @@ class ChatController extends GetxController {
     );
   }
 
-  Future<void> cancelQueue() async {
-    // 1. Dismiss dialog immediately
-    if (Get.isDialogOpen == true) Get.back();
+  Future<void> cancelConnection() async {
+    isEnded.value = true;
+    _durationTimer?.cancel();
 
-    // 2. Exit chat screen immediately
+    // 1. Dismiss dialog immediately
+    while (Get.isDialogOpen == true) {
+      Get.back();
+    }
+
+    // 2. Exit chat screen immediately if inside
     final route = Get.currentRoute;
     if (route.contains('chat')) {
       Get.back();
     }
 
-    // 3. Fire API call in background
+    final sessionId = currentSession['_id']?.toString();
+    if (sessionId != null && sessionId.isNotEmpty) {
+      _api.post('/customer/chat/cancel-queue', data: {
+        'session_id': sessionId,
+        'queue_id': queueId.value,
+      }).catchError((_) => null);
+
+      _socket?.emit('cancel_chat_request', {'session_id': sessionId});
+    }
+
+    // 3. Fire API call in background for queue
     if (queueId.value.isNotEmpty) {
       _api.post('/customer/chat/cancel-queue', data: {'queue_id': queueId.value})
           .catchError((_) => null);
     }
     isQueued.value = false;
+    _refreshStatusDependentData();
+  }
+
+  Future<void> cancelQueue() async {
+    cancelConnection();
   }
 
   void _showRechargeDialog(String message) {
@@ -551,11 +745,7 @@ class ChatController extends GetxController {
       ),
       textCancel: 'Cancel',
       onCancel: () {
-        if (isQueued.value) {
-          cancelQueue();
-        } else {
-          endChat(reason: 'cancelled');
-        }
+        cancelConnection();
       },
       barrierDismissible: false,
     );
@@ -631,13 +821,30 @@ class ChatController extends GetxController {
       textCancel: 'Skip',
       onConfirm: () {
         submitReview(selectedRating, commentController.text.trim());
-        Get.offAllNamed(AppRoutes.dashboard);
+        _navigateBackToDashboard();
       },
       onCancel: () {
-        Get.offAllNamed(AppRoutes.dashboard);
+        _navigateBackToDashboard();
       },
       barrierDismissible: false,
     );
+  }
+
+  void _navigateBackToDashboard() {
+    if (Get.isDialogOpen == true) Get.back();
+
+    bool foundDashboard = false;
+    Navigator.popUntil(Get.context!, (route) {
+      if (route.settings.name == AppRoutes.dashboard || route.isFirst) {
+        foundDashboard = true;
+        return true;
+      }
+      return false;
+    });
+
+    if (!foundDashboard) {
+      Get.offAllNamed(AppRoutes.dashboard);
+    }
   }
 
   Future<void> submitReview(int rating, String comment) async {

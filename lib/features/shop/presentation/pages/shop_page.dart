@@ -3,9 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../controllers/shop_controller.dart';
 import '../widgets/checkout_sheet.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 class ShopPage extends GetView<ShopController> {
   const ShopPage({super.key});
@@ -24,6 +24,35 @@ class ShopPage extends GetView<ShopController> {
           onPressed: () => Get.back(),
         ),
         actions: [
+          Obx(() {
+            final count = controller.wishlistProductIds.length;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.favorite, color: Colors.red),
+                  tooltip: 'Wishlist',
+                  onPressed: () => Get.toNamed('/wishlist'),
+                ),
+                if (count > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: EdgeInsets.all(4.w),
+                      decoration: const BoxDecoration(
+                        color: AppColors.shopMaroon,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$count',
+                        style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
           IconButton(
             icon: const Icon(Icons.history, color: Colors.black),
             onPressed: () => Get.toNamed('/shop-orders'),
@@ -96,14 +125,14 @@ class ShopPage extends GetView<ShopController> {
     return Container(
       height: 44.h,
       margin: EdgeInsets.only(top: 16.h),
-      child: ListView.builder(
+      child: Obx(() => ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         itemCount: controller.categories.length + 1,
         itemBuilder: (context, index) {
           final isAll = index == 0;
           final category = isAll ? null : controller.categories[index - 1];
-          final categoryId = isAll ? 'All' : category['_id'];
+          final categoryId = isAll ? 'All' : (category['_id']?.toString() ?? '');
           final categoryName = isAll ? 'ALL' : (category['name']?.toString().toUpperCase() ?? 'CATEGORY');
 
           final isSelected = controller.selectedCategoryId.value == categoryId;
@@ -138,12 +167,21 @@ class ShopPage extends GetView<ShopController> {
             ),
           );
         },
-      ),
+      )),
     );
   }
 
   Widget _buildProductsGridSliver() {
-    if (controller.products.isEmpty && !controller.isLoading.value) {
+    if (controller.isLoading.value) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: 250.h,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (controller.products.isEmpty) {
       return SliverToBoxAdapter(
         child: Center(
           child: Padding(
@@ -172,36 +210,37 @@ class ShopPage extends GetView<ShopController> {
           final salePrice = product['sale_price'] ?? 0;
           final hasSale = salePrice > 0 && salePrice < price;
 
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          return GestureDetector(
+            onTap: () => Get.toNamed('/product-detail', arguments: product),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Stack(
                     children: [
-                      Container(
+                      SizedBox(
                         width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                        height: double.infinity,
+                        child: AppNetworkImage(
+                          url: imageUrl,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
                           borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                          fallbackIcon: Icons.shopping_bag_outlined,
                         ),
-                        child: imageUrl != null && imageUrl.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-                                child: Image.network(ApiConstants.resolveImage(imageUrl), fit: BoxFit.cover),
-                              )
-                            : Icon(Icons.shopping_bag_outlined, size: 40.sp, color: Colors.grey.shade300),
                       ),
                       Positioned(
                         top: 10.h,
@@ -225,11 +264,33 @@ class ShopPage extends GetView<ShopController> {
                       Positioned(
                         top: 10.h,
                         right: 10.w,
-                        child: Container(
-                          padding: EdgeInsets.all(6.w),
-                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          child: Icon(Icons.favorite_border, color: Colors.grey, size: 16.sp),
-                        ),
+                        child: Obx(() {
+                          final productId = product['_id']?.toString() ?? '';
+                          final isFav = controller.isWishlisted(productId);
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => controller.toggleWishlist(productId, product['name']?.toString()),
+                            child: Container(
+                              padding: EdgeInsets.all(6.w),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                isFav ? Icons.favorite : Icons.favorite_border,
+                                color: isFav ? Colors.red : Colors.grey,
+                                size: 16.sp,
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                     ],
                   ),
@@ -287,6 +348,7 @@ class ShopPage extends GetView<ShopController> {
                 ),
               ],
             ),
+          ),
           );
         },
         childCount: controller.products.length,

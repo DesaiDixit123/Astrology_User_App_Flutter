@@ -5,6 +5,7 @@ import '../../../../core/network/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/utils/snackbar_util.dart';
 import '../../../../core/utils/astrologer_utils.dart';
+import '../../../../core/data/ai_astrologers_data.dart';
 
 class AstrologerController extends GetxController {
   final RxList astrologers = [].obs;
@@ -20,6 +21,35 @@ class AstrologerController extends GetxController {
   final RxBool isFreeChatEnabled = true.obs;
   final RxInt freeChatDurationMinutes = 1.obs;
 
+  // AI Astrologer filters & dynamic settings
+  final RxString selectedCategory = 'all'.obs; // 'all' (Vedic) or 'ai' (AI)
+  final RxString selectedAiGender = 'all'.obs; // 'all', 'boy', 'girl'
+  final RxList aiAstrologers = [].obs;
+  final RxBool isAiChatEnabled = true.obs;
+  final RxBool isAiFirstChatFree = true.obs;
+  final RxBool isAiFreeAvailable = true.obs;
+  final RxInt aiChatPrice = 49.obs;
+  final RxString aiCurrency = 'INR'.obs;
+  final RxDouble customerWalletBalance = 0.0.obs;
+
+  List<Map<String, dynamic>> get filteredAiAstrologers {
+    var list = aiAstrologers.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    if (selectedAiGender.value == 'boy') {
+      list = list.where((a) => a['gender'] == 'boy').toList();
+    } else if (selectedAiGender.value == 'girl') {
+      list = list.where((a) => a['gender'] == 'girl').toList();
+    }
+    if (searchQuery.value.trim().isNotEmpty) {
+      final q = searchQuery.value.toLowerCase().trim();
+      list = list.where((a) {
+        final name = (a['name'] ?? '').toString().toLowerCase();
+        final spec = (a['specialization'] ?? '').toString().toLowerCase();
+        return name.contains(q) || spec.contains(q);
+      }).toList();
+    }
+    return list;
+  }
+
   int _page = 1;
   final _api = ApiService.instance;
   IO.Socket? _socket;
@@ -28,6 +58,8 @@ class AstrologerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    loadAiAstrologers();
+    fetchAiChatConfigAndEligibility();
     checkFreeChatEligibility();
     loadAstrologers();
     final args = Get.arguments;
@@ -175,6 +207,57 @@ class AstrologerController extends GetxController {
       hasMore.value = data?['hasNextPage'] == true;
       _page++;
     }
+  }
+
+  Future<void> loadAiAstrologers() async {
+    aiAstrologers.value = List.from(AIAstrologersData.defaultAIAstrologers);
+    try {
+      final res = await _api.get(ApiConstants.aiAstrologers);
+      if (ApiService.isSuccess(res)) {
+        final data = ApiService.getData(res);
+        if (data is List && data.isNotEmpty) {
+          aiAstrologers.value = List.from(data);
+          final first = data.first;
+          if (first is Map && first['chat_price'] != null) {
+            aiChatPrice.value = (first['chat_price'] as num).toInt();
+          }
+          if (first is Map && first['is_enabled'] != null) {
+            isAiChatEnabled.value = first['is_enabled'] == true;
+          }
+          if (first is Map && first['first_chat_free'] != null) {
+            isAiFirstChatFree.value = first['first_chat_free'] == true;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> fetchAiChatConfigAndEligibility() async {
+    try {
+      final configRes = await _api.get(ApiConstants.aiChatConfig);
+      if (ApiService.isSuccess(configRes)) {
+        final data = ApiService.getData(configRes);
+        if (data is Map) {
+          isAiChatEnabled.value = data['is_enabled'] ?? true;
+          isAiFirstChatFree.value = data['first_chat_free'] ?? true;
+          aiChatPrice.value = (data['chat_price'] as num?)?.toInt() ?? 49;
+          aiCurrency.value = (data['currency'] ?? 'INR').toString();
+        }
+      }
+
+      final eligRes = await _api.get(ApiConstants.aiChatEligibility);
+      if (ApiService.isSuccess(eligRes)) {
+        final data = ApiService.getData(eligRes);
+        if (data is Map) {
+          isAiChatEnabled.value = data['is_enabled'] ?? true;
+          isAiFirstChatFree.value = data['first_chat_free'] ?? true;
+          isAiFreeAvailable.value = data['is_free_chat_available'] ?? false;
+          aiChatPrice.value = (data['chat_price'] as num?)?.toInt() ?? 49;
+          aiCurrency.value = (data['currency'] ?? 'INR').toString();
+          customerWalletBalance.value = (data['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> loadTopAstrologers() async {
@@ -329,7 +412,10 @@ class AstrologerController extends GetxController {
 
     // Basic identity
     normalized['name'] = AstrologerUtils.getLocalizedAstrologerName(raw);
-    normalized['profilePic'] ??= personal is Map ? personal['profile_image'] : null;
+    final actualImage = AstrologerUtils.getAstrologerImage(raw);
+    normalized['profilePic'] = actualImage;
+    normalized['profile_pic'] = actualImage;
+    normalized['profile_image'] = actualImage;
 
     // Skills / specialization – prefer names from skill_details
     final skills = <String>[];

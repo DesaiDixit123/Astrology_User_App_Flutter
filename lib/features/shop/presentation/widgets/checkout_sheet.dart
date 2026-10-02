@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../wallet/presentation/controllers/wallet_controller.dart';
 import '../controllers/shop_controller.dart';
+import '../../../../shared/widgets/app_network_image.dart';
 
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -88,7 +88,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       'prefill': {
         'contact': mobileController.text.isNotEmpty ? mobileController.text : '9904755099',
         'name': nameController.text.isNotEmpty ? nameController.text : 'Customer',
-        'email': 'admin@thekhushiempire.com',
+        'email': 'support@vedikvani.com',
       },
       'theme': {'color': '#E65100'},
       'retry': {'enabled': true, 'max_count': 1},
@@ -262,12 +262,16 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: product['images'] != null && (product['images'] as List).isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network(ApiConstants.resolveImage(product['images'][0]), fit: BoxFit.cover),
-                  )
-                : Icon(Icons.shopping_bag, color: Colors.grey.shade300),
+            child: AppNetworkImage(
+              url: (product['images'] != null && (product['images'] as List).isNotEmpty)
+                  ? product['images'][0].toString()
+                  : '',
+              width: 50.w,
+              height: 50.w,
+              fit: BoxFit.cover,
+              borderRadius: BorderRadius.circular(8.r),
+              fallbackIcon: Icons.shopping_bag_outlined,
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
