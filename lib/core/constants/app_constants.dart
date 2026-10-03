@@ -9,7 +9,7 @@ class AppConstants {
   // static const String baseUrl = 'http://192.168.29.74:3050/';
   static const int connectionTimeout = 30000;
   static const int receiveTimeout = 30000;
-  static const String razorpayKeyId = 'rzp_live_T690exIdAcKXHs';
+  static const String razorpayKeyId = 'rzp_live_TizoH6DpiW0jl7';
 
   // Storage Keys
   static const String keyToken = 'auth_token';
